@@ -1,8 +1,8 @@
 import { Fragment } from 'react'
 import type { CompanyInfo, Quote } from '@/lib/mock-data'
 import { formatMoney, getQuoteSummary, itemTotal } from '@/lib/quote-calculations'
+import type { CurrentUser } from '@/lib/auth-context'
 import type { PaymentTerm } from '@/lib/settings-service'
-import type { CurrentUser } from '@/lib/user-service'
 
 interface Props {
   quote: Quote
@@ -159,7 +159,7 @@ export function QuotePrintDocument({
                           <td className={`${cell} text-right`}>
                             {item.qty} {item.unit}
                           </td>
-                          <td className={`${cell} text-right`}>{money(itemTotal(item))}</td>
+                          <td className={`${cell} text-right`}>{item.foc ? 'FOC' : money(itemTotal(item))}</td>
                         </tr>
                       ))}
                     </Fragment>

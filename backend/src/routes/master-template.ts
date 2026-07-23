@@ -10,8 +10,12 @@ export const masterTemplateRouter = Router()
 masterTemplateRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    const masterTemplate = await prisma.masterTemplate.findFirst({ include: masterTemplateInclude })
-    if (!masterTemplate) return res.status(500).json({ error: 'Master template not seeded — run `npx prisma db seed`' })
+    const masterTemplate =
+      (await prisma.masterTemplate.findFirst({ where: { ownerId: req.authUserId }, include: masterTemplateInclude })) ??
+      (await prisma.masterTemplate.create({
+        data: { ownerId: req.authUserId, quote: { create: {} } },
+        include: masterTemplateInclude,
+      }))
     res.json(toMasterTemplateDTO(masterTemplate))
   }),
 )
@@ -21,8 +25,16 @@ masterTemplateRouter.put(
   asyncHandler(async (req, res) => {
     const body = putQuoteBodySchema.parse(req.body)
 
-    const masterTemplate = await prisma.masterTemplate.findFirst({ select: { id: true, quote: { select: { id: true } } } })
-    if (!masterTemplate?.quote) return res.status(500).json({ error: 'Master template not seeded' })
+    const masterTemplate =
+      (await prisma.masterTemplate.findFirst({
+        where: { ownerId: req.authUserId },
+        select: { id: true, quote: { select: { id: true } } },
+      })) ??
+      (await prisma.masterTemplate.create({
+        data: { ownerId: req.authUserId, quote: { create: {} } },
+        select: { id: true, quote: { select: { id: true } } },
+      }))
+    if (!masterTemplate.quote) return res.status(500).json({ error: 'Master template quote missing' })
     const quoteId = masterTemplate.quote.id
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -34,7 +46,7 @@ masterTemplateRouter.put(
       // Bump updatedAt even though no scalar MasterTemplate field changed —
       // an empty `data: {}` update is a no-op query, so set it explicitly.
       await tx.masterTemplate.update({ where: { id: masterTemplate.id }, data: { updatedAt: new Date() } })
-      return tx.masterTemplate.findFirstOrThrow({ include: masterTemplateInclude })
+      return tx.masterTemplate.findUniqueOrThrow({ where: { id: masterTemplate.id }, include: masterTemplateInclude })
     })
 
     res.json(toMasterTemplateDTO(updated))

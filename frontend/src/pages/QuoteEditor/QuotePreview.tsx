@@ -2,8 +2,9 @@ import { createPortal } from 'react-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Quote } from '@/lib/mock-data'
+import { useCurrentUser } from '@/lib/auth-context'
 import { exportQuoteToExcel } from '@/lib/quote-excel-export'
-import { useCurrentUser, useSettings } from '@/lib/settings-context'
+import { useSettings } from '@/lib/settings-context'
 import { QuotePrintDocument } from '@/pages/QuoteEditor/QuotePrintDocument'
 
 interface Props {

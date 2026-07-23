@@ -8,7 +8,7 @@ export function formatMoney(value: number, currencySymbol: string) {
 }
 
 export function itemTotal(item: LineItem) {
-  return item.foc ? 0 : item.qty * item.selling
+  return item.foc || !item.inc ? 0 : item.qty * item.selling
 }
 
 export function itemProfitPercent(item: LineItem) {
@@ -23,7 +23,7 @@ export function includedAreas(section: QuoteSection): AreaOfWork[] {
 export function sectionTotals(section: QuoteSection) {
   const items = includedAreas(section).flatMap((area) => area.items)
   const price = items.reduce((sum, item) => sum + itemTotal(item), 0)
-  const cost = items.reduce((sum, item) => sum + item.qty * item.cost, 0)
+  const cost = items.reduce((sum, item) => sum + (item.inc ? item.qty * item.cost : 0), 0)
   return { price, cost, profit: price - cost }
 }
 

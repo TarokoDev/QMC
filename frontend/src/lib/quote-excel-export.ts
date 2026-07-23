@@ -53,7 +53,13 @@ export function exportQuoteToExcel({
         const areaNumber = `${sectionNumber}.${areaIndex + 1}`
         rows.push([areaNumber, area.name])
         area.items.forEach((item, itemIndex) => {
-          rows.push([`${areaNumber}.${itemIndex + 1}`, item.description, item.qty, item.unit, itemTotal(item)])
+          rows.push([
+            `${areaNumber}.${itemIndex + 1}`,
+            item.description,
+            item.qty,
+            item.unit,
+            item.foc ? 'FOC' : itemTotal(item),
+          ])
         })
       })
     })

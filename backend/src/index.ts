@@ -5,9 +5,9 @@ import { categoriesRouter } from './routes/categories.js'
 import { clientsRouter } from './routes/clients.js'
 import { foldersRouter } from './routes/folders.js'
 import { masterTemplateRouter } from './routes/master-template.js'
-import { meRouter } from './routes/me.js'
 import { revisionsRouter } from './routes/revisions.js'
 import { settingsRouter } from './routes/settings.js'
+import { requireAuth } from './require-auth.js'
 
 const app = express()
 
@@ -16,12 +16,13 @@ app.use(express.json())
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
+app.use('/api', requireAuth)
+
 app.use('/api/folders', foldersRouter)
 app.use('/api', categoriesRouter)
 app.use('/api', clientsRouter)
 app.use('/api', revisionsRouter)
 app.use('/api/settings', settingsRouter)
-app.use('/api/me', meRouter)
 app.use('/api/master-template', masterTemplateRouter)
 
 app.use((req, res) => {

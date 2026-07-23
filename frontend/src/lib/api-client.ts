@@ -1,3 +1,5 @@
+import { getAccessToken } from '@/lib/supabase-client'
+
 const API_URL = import.meta.env.VITE_API_URL as string | undefined
 
 export class ApiError extends Error {
@@ -13,9 +15,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error('VITE_API_URL is not set — see frontend/.env.example')
   }
 
+  const token = getAccessToken()
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
   })
 
   if (!res.ok) {

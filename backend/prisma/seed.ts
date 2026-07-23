@@ -61,14 +61,16 @@ async function main() {
     })
   }
 
-  const userCount = await prisma.user.count()
-  if (userCount === 0) {
-    await prisma.user.create({ data: { name: 'Kim Hoe', initials: 'KH' } })
-  }
-
-  const masterTemplateCount = await prisma.masterTemplate.count()
-  if (masterTemplateCount === 0) {
-    await prisma.masterTemplate.create({ data: { quote: { create: {} } } })
+  // Existing dev data (folders/master templates) predates per-user ownership.
+  // Attribute it to kim hoe once her Supabase Auth user exists — set her UUID
+  // (the `sub` claim) here first — see CLAUDE.md "Environments". Guarded so
+  // re-running the seed never overwrites a real owner assignment.
+  const kimHoeAuthUserId = process.env.KIM_HOE_AUTH_USER_ID
+  if (!kimHoeAuthUserId) {
+    console.warn('KIM_HOE_AUTH_USER_ID not set — skipping folder/master-template ownership backfill.')
+  } else {
+    await prisma.folder.updateMany({ where: { ownerId: null }, data: { ownerId: kimHoeAuthUserId } })
+    await prisma.masterTemplate.updateMany({ where: { ownerId: null }, data: { ownerId: kimHoeAuthUserId } })
   }
 
   console.log('Seed complete.')

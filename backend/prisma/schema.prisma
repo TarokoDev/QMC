@@ -11,9 +11,14 @@ datasource db {
 model Folder {
   id         String     @id @default(uuid())
   name       String
+  /// Supabase auth UID that owns this folder tree (and everything nested under it).
+  /// Nullable until backfilled (migration A) — see CLAUDE.md "Environments"; a
+  /// follow-up migration flips this to NOT NULL once existing rows are backfilled.
+  ownerId    String?    @map("owner_id")
   createdAt  DateTime   @default(now()) @map("created_at")
   categories Category[]
 
+  @@index([ownerId])
   @@map("folders")
 }
 
@@ -35,11 +40,13 @@ model Category {
   @@map("categories")
 }
 
-/// Single, org-wide reusable base content — an alternative starting point to
-/// starting a client's quote completely from scratch. Singleton by
-/// convention (like CompanySettings/QuoteConfig), not per-folder.
+/// Reusable base content — an alternative starting point to starting a
+/// client's quote completely from scratch. One row per owner (Supabase auth
+/// UID), not a true global singleton.
 model MasterTemplate {
   id        String   @id @default(uuid())
+  /// Nullable until backfilled (migration A), see Folder.ownerId.
+  ownerId   String?  @unique @map("owner_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   quote     Quote?
@@ -165,13 +172,4 @@ model QuoteConfig {
   paymentTermsSchedule Json   @map("payment_terms_schedule")
 
   @@map("quote_config")
-}
-
-/// Single seeded row — no auth in this phase, this is the one mock user.
-model User {
-  id       String @id @default(uuid())
-  name     String
-  initials String
-
-  @@map("users")
 }

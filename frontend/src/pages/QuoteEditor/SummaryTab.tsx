@@ -72,7 +72,9 @@ export function SummaryTab({ quote }: Props) {
                               <td className="border px-3 py-1.5 text-right">
                                 {item.qty} {item.unit}
                               </td>
-                              <td className="border px-3 py-1.5 text-right">{money(itemTotal(item))}</td>
+                              <td className="border px-3 py-1.5 text-right">
+                                {item.foc ? 'FOC' : money(itemTotal(item))}
+                              </td>
                             </tr>
                           ))}
                         </Fragment>
