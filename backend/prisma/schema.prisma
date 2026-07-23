@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Folder {
+  id         String     @id @default(uuid())
+  name       String
+  createdAt  DateTime   @default(now()) @map("created_at")
+  categories Category[]
+
+  @@map("folders")
+}
+
+/// A named grouping of clients within a folder (e.g. "HDB 3-room") — purely
+/// organizational. Its own base `quote` content is only used for duplicating
+/// one Category from another; new clients are seeded from the Master
+/// Template or from scratch instead (see MasterTemplate).
+model Category {
+  id        String   @id @default(uuid())
+  folderId  String   @map("folder_id")
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  name      String
+  description String @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  quote     Quote?
+  clients   Client[]
+
+  @@map("categories")
+}
+
+/// Single, org-wide reusable base content — an alternative starting point to
+/// starting a client's quote completely from scratch. Singleton by
+/// convention (like CompanySettings/QuoteConfig), not per-folder.
+model MasterTemplate {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  quote     Quote?
+
+  @@map("master_template")
+}
+
+/// A client using a given category — e.g. "Joy Ong" quoted under "HDB 4 Room".
+/// Each client owns its own revision history, independent of the category
+/// and of other clients using the same category.
+model Client {
+  id         String     @id @default(uuid())
+  categoryId String     @map("category_id")
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  email      String     @default("")
+  contactNumber String  @default("") @map("contact_number")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  revisions  Revision[]
+
+  @@map("clients")
+}
+
+/// One revision (R0, R1, ...) of a client's quote. `position` orders them;
+/// the highest position is "latest" (the one intended to go to the client).
+model Revision {
+  id        String   @id @default(uuid())
+  clientId  String   @map("client_id")
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  label     String
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  quote     Quote?
+
+  @@map("revisions")
+}
+
+/// Quote content (info + nested sections/areas/items). Owned by exactly one
+/// of Category (the reusable base), Revision (a client's actual quote), or
+/// MasterTemplate — enforced in application code, not a DB constraint.
+model Quote {
+  id           String         @id @default(uuid())
+  categoryId   String?        @unique @map("category_id")
+  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  revisionId   String?        @unique @map("revision_id")
+  revision     Revision?      @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  masterTemplateId String?        @unique @map("master_template_id")
+  masterTemplate   MasterTemplate? @relation(fields: [masterTemplateId], references: [id], onDelete: Cascade)
+  clientName   String         @default("") @map("client_name")
+  projectSite  String         @default("") @map("project_site")
+  email        String         @default("")
+  contact      String         @default("")
+  quotationRef String         @default("R0") @map("quotation_ref")
+  refNumber    String         @default("") @map("ref_number")
+  date         String         @default("")
+  designer     String         @default("")
+  sections     QuoteSection[]
+
+  @@map("quotes")
+}
+
+model QuoteSection {
+  id          String       @id @default(uuid())
+  quoteId     String       @map("quote_id")
+  quote       Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  name        String
+  description String       @default("")
+  complete    Boolean      @default(false)
+  position    Int
+  areas       AreaOfWork[]
+
+  @@map("quote_sections")
+}
+
+model AreaOfWork {
+  id        String      @id @default(uuid())
+  sectionId String      @map("section_id")
+  section   QuoteSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name      String
+  included  Boolean     @default(false)
+  position  Int
+  items     LineItem[]
+
+  @@map("areas_of_work")
+}
+
+model LineItem {
+  id          String     @id @default(uuid())
+  areaId      String     @map("area_id")
+  area        AreaOfWork @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  description String     @default("")
+  qty         Decimal    @default(1) @db.Decimal(12, 2)
+  unit        String     @default("Lot")
+  cost        Decimal    @default(0) @db.Decimal(12, 2)
+  selling     Decimal    @default(0) @db.Decimal(12, 2)
+  foc         Boolean    @default(false)
+  inc         Boolean    @default(true)
+  position    Int
+
+  @@map("line_items")
+}
+
+/// Single-row tenant settings — no multi-tenancy in this phase.
+model CompanySettings {
+  id      String @id @default(uuid())
+  name    String
+  address String
+  tel     String
+  uen     String
+  gst     String
+  website String
+
+  @@map("company_settings")
+}
+
+/// Single-row quoting config (GST rate, currency, units, payment terms).
+model QuoteConfig {
+  id                   String @id @default(uuid())
+  gstRate              Decimal @map("gst_rate") @db.Decimal(5, 4)
+  currency             String
+  currencySymbol       String @map("currency_symbol")
+  unitOptions          Json   @map("unit_options")
+  paymentTermsSchedule Json   @map("payment_terms_schedule")
+
+  @@map("quote_config")
+}
+
+/// Single seeded row — no auth in this phase, this is the one mock user.
+model User {
+  id       String @id @default(uuid())
+  name     String
+  initials String
+
+  @@map("users")
+}

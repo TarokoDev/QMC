@@ -1,0 +1,52 @@
+import type { AreaOfWork, LineItem, Quote, QuoteSection } from '@/lib/mock-data'
+
+export function formatMoney(value: number, currencySymbol: string) {
+  return `${currencySymbol}${value.toLocaleString('en-SG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+export function itemTotal(item: LineItem) {
+  return item.foc ? 0 : item.qty * item.selling
+}
+
+export function itemProfitPercent(item: LineItem) {
+  if (item.cost === 0) return 0
+  return ((item.selling - item.cost) / item.cost) * 100
+}
+
+export function includedAreas(section: QuoteSection): AreaOfWork[] {
+  return section.areas.filter((area) => area.included)
+}
+
+export function sectionTotals(section: QuoteSection) {
+  const items = includedAreas(section).flatMap((area) => area.items)
+  const price = items.reduce((sum, item) => sum + itemTotal(item), 0)
+  const cost = items.reduce((sum, item) => sum + item.qty * item.cost, 0)
+  return { price, cost, profit: price - cost }
+}
+
+export interface QuoteSummary {
+  sections: { section: QuoteSection; areas: AreaOfWork[] }[]
+  subTotal: number
+  gst: number
+  grandTotal: number
+}
+
+export function getQuoteSummary(quote: Quote, gstRate: number): QuoteSummary {
+  const sections = quote.sections
+    .filter((section) => section.complete)
+    .map((section) => ({ section, areas: includedAreas(section) }))
+    .filter((entry) => entry.areas.length > 0)
+
+  const subTotal = sections.reduce(
+    (sum, entry) =>
+      sum + entry.areas.reduce((areaSum, area) => areaSum + area.items.reduce((itemSum, item) => itemSum + itemTotal(item), 0), 0),
+    0,
+  )
+  const gst = subTotal * gstRate
+  const grandTotal = subTotal + gst
+
+  return { sections, subTotal, gst, grandTotal }
+}
