@@ -198,24 +198,24 @@ export function QuotationItemsTab({
                       <table className="w-full text-left text-sm">
                         <thead>
                           <tr className="text-muted-foreground">
-                            <th className="w-8 py-1">#</th>
-                            <th className="py-1">Item Description</th>
-                            <th className="w-14 py-1">Qty</th>
-                            <th className="w-16 py-1">Unit</th>
-                            <th className="w-20 py-1">Cost (S$)</th>
-                            <th className="w-24 py-1">Selling (S$)</th>
-                            <th className="w-20 py-1">Total (S$)</th>
-                            <th className="w-16 py-1">P/L (%)</th>
-                            <th className="w-12 py-1">FOC</th>
-                            <th className="w-12 py-1">INC.</th>
-                            <th className="w-8 py-1" />
+                            <th className="w-8 px-2 py-1">#</th>
+                            <th className="px-2 py-1">Item Description</th>
+                            <th className="w-14 px-2 py-1">Qty</th>
+                            <th className="w-16 px-2 py-1">Unit</th>
+                            <th className="w-20 px-2 py-1">Cost (S$)</th>
+                            <th className="w-24 px-2 py-1">Selling (S$)</th>
+                            <th className="w-20 px-2 py-1">Total (S$)</th>
+                            <th className="w-16 px-2 py-1">P/L (%)</th>
+                            <th className="w-12 px-2 py-1">FOC</th>
+                            <th className="w-12 px-2 py-1">INC.</th>
+                            <th className="w-8 px-2 py-1" />
                           </tr>
                         </thead>
                         <tbody>
                           {area.items.map((item, index) => (
                             <tr key={item.id} className="border-t">
-                              <td className="py-1.5">{index + 1}</td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">{index + 1}</td>
+                              <td className="px-2 py-1.5">
                                 <Input
                                   value={item.description}
                                   disabled={readOnly}
@@ -227,7 +227,7 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">
                                 <Input
                                   type="number"
                                   value={item.qty}
@@ -240,7 +240,7 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">
                                 <Select
                                   value={item.unit}
                                   disabled={readOnly}
@@ -263,7 +263,7 @@ export function QuotationItemsTab({
                                   </SelectContent>
                                 </Select>
                               </td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">
                                 <Input
                                   type="number"
                                   value={item.cost}
@@ -276,7 +276,7 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">
                                 <Input
                                   type="number"
                                   value={item.selling}
@@ -289,9 +289,9 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5">{money(itemTotal(item))}</td>
-                              <td className="py-1.5">{itemProfitPercent(item).toFixed(2)}</td>
-                              <td className="py-1.5 text-center">
+                              <td className="px-2 py-1.5">{money(itemTotal(item))}</td>
+                              <td className="px-2 py-1.5">{itemProfitPercent(item).toFixed(2)}</td>
+                              <td className="px-2 py-1.5 text-center">
                                 <Checkbox
                                   checked={item.foc}
                                   disabled={readOnly}
@@ -303,7 +303,7 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5 text-center">
+                              <td className="px-2 py-1.5 text-center">
                                 <Checkbox
                                   checked={item.inc}
                                   disabled={readOnly}
@@ -315,7 +315,7 @@ export function QuotationItemsTab({
                                   }
                                 />
                               </td>
-                              <td className="py-1.5">
+                              <td className="px-2 py-1.5">
                                 <button
                                   type="button"
                                   aria-label="Delete item"
