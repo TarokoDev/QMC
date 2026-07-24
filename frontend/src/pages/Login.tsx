@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
 import { resetDemoPlayground } from '@/lib/demo-service'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined
 const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined
@@ -46,7 +47,10 @@ export function Login() {
   return (
     <div className="flex h-svh items-center justify-center">
       <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border p-8">
-        <h1 className="font-heading text-xl font-semibold">Quote Management System</h1>
+        <div className="mx-auto flex w-fit flex-col items-center gap-3">
+          <img src="/logo.png" alt="" className="aspect-square w-full rounded-xl" />
+          <h1 className="whitespace-nowrap font-heading text-xl font-semibold">Quote Management System</h1>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="login-email">Email</Label>
@@ -81,6 +85,7 @@ export function Login() {
           {demoSubmitting ? 'Loading Demo...' : 'Use Demo Account'}
         </Button>
       </form>
+      <AppFooter />
     </div>
   )
 }

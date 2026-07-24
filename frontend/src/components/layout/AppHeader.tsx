@@ -29,7 +29,8 @@ export function AppHeader() {
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
-      <Link to="/" className="font-heading text-xl font-semibold">
+      <Link to="/" className="flex items-center gap-2 font-heading text-xl font-semibold">
+        <img src="/logo.png" alt="" className="size-8 rounded-md" />
         Quote Management System
       </Link>
       <div className="flex items-center gap-3">

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Card, CardTitle } from '@/components/ui/card'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 export function Home() {
   return (
@@ -14,6 +15,7 @@ export function Home() {
           <CardTitle className="px-4 text-base font-medium">Master Template</CardTitle>
         </Card>
       </Link>
+      <AppFooter />
     </div>
   )
 }

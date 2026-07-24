@@ -44,6 +44,8 @@ No test runner is configured on either side yet.
 
 Frontend:
 - Vite + React 19 + TypeScript
+- App version: `vite.config.ts` reads `package.json`'s `version` and injects it as the `__APP_VERSION__` global (declared in `src/vite-env.d.ts`) — bump `frontend/package.json`'s `version`, nothing else, to update it. Only consumer is `AppFooter.tsx` ("Created by ... — v{version}", fixed to the bottom of `Login.tsx` and `Home.tsx`).
+- App logo: `frontend/public/logo.png`, served at `/logo.png` — used as the favicon (`index.html`), next to the wordmark in `AppHeader.tsx`, and large above the heading on `Login.tsx` (sized via a `w-fit` wrapper so the image stretches to match the heading text's width).
 - Tailwind CSS v4 (CSS-first config — no `tailwind.config.js`; theme/plugins declared in `src/index.css` via `@import`/`@plugin`/`@theme`)
 - DaisyUI (`@plugin "daisyui"` in `src/index.css`)
 - shadcn/ui (Radix Nova preset) — components in `src/components/ui/`, added via `npx shadcn@latest add <component>`. `components.json`: `style: radix-nova`, base color `neutral`, alias `@` → `src/`.

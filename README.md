@@ -202,6 +202,7 @@ npm run dev                # starts Vite on http://localhost:5173
 - 📑 **Excel export** — client-side `.xlsx` generation via `xlsx` library
 - 🔐 **Supabase Auth** — asymmetric JWT (ES256), per-user data scoping via `ownerId`
 - 👥 **Multi-user support** — folder/template ownership scoped by Supabase Auth UID
+- 🎮 **Demo playground account** — "Use Demo Account" on the login page seeds realistic sample data and self-resets on login/logout, for demoing without touching real data (see API docs below)
 
 ---
 
@@ -1292,7 +1293,8 @@ For a line item to count toward totals: **section.complete** ✓ → **area.incl
 1. Create a feature branch from `main`
 2. Make changes
 3. Run `npm run build` in both `frontend/` and `backend/` to verify compilation
-4. Push and open a PR targeting `testing` branch
+4. Bump `frontend/package.json`'s `version` for user-facing changes — it's the only source for the footer's version number (see `CLAUDE.md` "Stack")
+5. Push and open a PR targeting `testing` branch
 
 ---
 
