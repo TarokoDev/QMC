@@ -1,34 +1,20 @@
-import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAuth, useCurrentUser } from '@/lib/auth-context'
 
 export function AppHeader() {
-  const location = useLocation()
   const navigate = useNavigate()
-  const isHome = location.pathname === '/'
   const currentUser = useCurrentUser()
   const { signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
-      <div className="flex items-center gap-4">
-        <Link to="/" className="font-heading text-xl font-semibold">
-          Quote Management System
-        </Link>
-        {!isHome && (
-          <Link
-            to="/"
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Dashboard
-          </Link>
-        )}
-      </div>
+      <Link to="/" className="font-heading text-xl font-semibold">
+        Quote Management System
+      </Link>
       <div className="flex items-center gap-3">
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
