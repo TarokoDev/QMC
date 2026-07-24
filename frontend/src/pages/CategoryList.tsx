@@ -70,7 +70,7 @@ export function CategoryList() {
             <Card
               key={category.id}
               onClick={() => navigate(`/quotes/new/category/${folderId}/${category.id}`)}
-              className="group/category relative flex h-28 flex-col items-center justify-center gap-1 text-center hover:bg-muted/50"
+              className="group/category relative flex h-28 flex-col items-center justify-center gap-1 text-center hover:bg-muted/50 cursor-pointer"
             >
               <CardTitle className="px-2 text-sm font-medium">{category.name}</CardTitle>
               {category.description && (
