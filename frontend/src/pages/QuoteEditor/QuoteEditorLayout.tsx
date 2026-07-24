@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/Breadcrumb'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +37,8 @@ interface Props {
   quote: Quote
   onQuoteChange: (quote: Quote) => void
   onClientFieldChange?: (field: 'clientName' | 'email' | 'contact', value: string) => void
+  onResetTemplate?: () => void
+  onUseMasterTemplate?: () => void
 }
 
 export function QuoteEditorLayout({
@@ -52,17 +54,27 @@ export function QuoteEditorLayout({
   quote,
   onQuoteChange,
   onClientFieldChange,
+  onResetTemplate,
+  onUseMasterTemplate,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('basic')
   const [showPreview, setShowPreview] = useState(false)
   const [activeSectionId, setActiveSectionId] = useState(() => quote.sections[0]?.id ?? '')
   const [addRevisionOpen, setAddRevisionOpen] = useState(false)
   const [deletingRevision, setDeletingRevision] = useState<RevisionChip | null>(null)
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+  const [useMasterConfirmOpen, setUseMasterConfirmOpen] = useState(false)
 
   const activeSection = useMemo(
     () => quote.sections.find((section) => section.id === activeSectionId) ?? null,
     [quote.sections, activeSectionId],
   )
+
+  useEffect(() => {
+    if (!activeSection && quote.sections.length > 0) {
+      setActiveSectionId(quote.sections[0].id)
+    }
+  }, [activeSection, quote.sections])
 
   const activeRevisionIndex = revisions.findIndex((revision) => revision.id === activeRevisionId)
   const activeRevisionLabel = revisions[activeRevisionIndex]?.label ?? ''
@@ -148,9 +160,21 @@ export function QuoteEditorLayout({
                 </Button>
               )}
             </div>
-            <Button variant="outline" onClick={() => setShowPreview(true)}>
-              Preview Quote
-            </Button>
+            <div className="flex items-center gap-1.5">
+              {isLatestRevision && onResetTemplate && (
+                <Button variant="outline" onClick={() => setResetConfirmOpen(true)}>
+                  Reset Template
+                </Button>
+              )}
+              {isLatestRevision && onUseMasterTemplate && (
+                <Button variant="outline" onClick={() => setUseMasterConfirmOpen(true)}>
+                  Use Master Template
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setShowPreview(true)}>
+                Preview Quote
+              </Button>
+            </div>
           </div>
 
           <div
@@ -211,6 +235,26 @@ export function QuoteEditorLayout({
         onConfirm={() => {
           if (deletingRevision) onDeleteRevision?.(deletingRevision.id)
         }}
+      />
+
+      <ConfirmDialog
+        open={resetConfirmOpen}
+        onOpenChange={setResetConfirmOpen}
+        title="Reset template?"
+        description="This clears all sections, areas of work, and line items in this revision back to blank. This cannot be undone."
+        confirmLabel="Reset"
+        destructive
+        onConfirm={() => onResetTemplate?.()}
+      />
+
+      <ConfirmDialog
+        open={useMasterConfirmOpen}
+        onOpenChange={setUseMasterConfirmOpen}
+        title="Use Master Template?"
+        description="This replaces all sections, areas of work, and line items in this revision with the Master Template's current content. This cannot be undone."
+        confirmLabel="Use Master Template"
+        destructive
+        onConfirm={() => onUseMasterTemplate?.()}
       />
     </div>
   )

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useCategoryLibrary } from '@/lib/category-library-context'
 import * as clientService from '@/lib/client-service'
 import type { Client } from '@/lib/client-service'
+import * as masterTemplateService from '@/lib/master-template-service'
 import type { Quote } from '@/lib/mock-data'
 import * as revisionService from '@/lib/revision-service'
 import type { RevisionSummary } from '@/lib/revision-service'
@@ -90,6 +91,21 @@ export function ClientEditor() {
     setQuotes((prev) => ({ ...prev, [activeRevisionId]: withLiveClientInfo(prev[activeRevisionId], updatedClient) }))
   }
 
+  async function handleUseMasterTemplate() {
+    const master = await masterTemplateService.getMasterTemplate()
+    setQuotes((prev) => ({
+      ...prev,
+      [activeRevisionId]: { ...prev[activeRevisionId], sections: master.quote.sections },
+    }))
+  }
+
+  function handleResetTemplate() {
+    setQuotes((prev) => ({
+      ...prev,
+      [activeRevisionId]: { ...prev[activeRevisionId], sections: [] },
+    }))
+  }
+
   async function handleSelectRevision(id: string) {
     if (quotes[id]) {
       setActiveRevisionId(id)
@@ -150,6 +166,8 @@ export function ClientEditor() {
       quote={activeQuote}
       onQuoteChange={handleQuoteChange}
       onClientFieldChange={handleClientFieldChange}
+      onResetTemplate={handleResetTemplate}
+      onUseMasterTemplate={handleUseMasterTemplate}
     />
   )
 }
