@@ -15,13 +15,19 @@ interface Props {
   onChange: (quote: Quote) => void
   revisionLabel: string
   readOnly?: boolean
+  onClientFieldChange?: (field: 'clientName' | 'email' | 'contact', value: string) => void
 }
 
-export function BasicInformationTab({ quote, onChange, revisionLabel, readOnly }: Props) {
+export function BasicInformationTab({ quote, onChange, revisionLabel, readOnly, onClientFieldChange }: Props) {
   const { company } = useSettings()
 
   function updateInfo<K extends keyof Quote['info']>(key: K, value: Quote['info'][K]) {
     onChange({ ...quote, info: { ...quote.info, [key]: value } })
+  }
+
+  function updateClientField(field: 'clientName' | 'email' | 'contact', value: string) {
+    updateInfo(field, value)
+    onClientFieldChange?.(field, value)
   }
 
   return (
@@ -45,9 +51,24 @@ export function BasicInformationTab({ quote, onChange, revisionLabel, readOnly }
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold">Client</h3>
         <div className="grid max-w-xl grid-cols-1 gap-4">
-          <Field label="Name" value={quote.info.clientName} onChange={(v) => updateInfo('clientName', v)} disabled />
-          <Field label="Email" value={quote.info.email} onChange={(v) => updateInfo('email', v)} disabled />
-          <Field label="Contact" value={quote.info.contact} onChange={(v) => updateInfo('contact', v)} disabled />
+          <Field
+            label="Name"
+            value={quote.info.clientName}
+            onChange={(v) => updateClientField('clientName', v)}
+            disabled={onClientFieldChange ? readOnly : true}
+          />
+          <Field
+            label="Email"
+            value={quote.info.email}
+            onChange={(v) => updateClientField('email', v)}
+            disabled={onClientFieldChange ? readOnly : true}
+          />
+          <Field
+            label="Contact"
+            value={quote.info.contact}
+            onChange={(v) => updateClientField('contact', v)}
+            disabled={onClientFieldChange ? readOnly : true}
+          />
         </div>
       </section>
 

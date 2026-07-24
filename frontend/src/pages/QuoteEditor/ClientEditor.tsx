@@ -35,7 +35,7 @@ export function ClientEditor() {
       setClient(loadedClient)
       setRevisions(loadedRevisions)
       if (latestFull) {
-        setQuotes({ [latestFull.id]: latestFull.quote })
+        setQuotes({ [latestFull.id]: withLiveClientInfo(latestFull.quote, loadedClient) })
         setActiveRevisionId(latestFull.id)
       }
       setLoading(false)
@@ -46,6 +46,13 @@ export function ClientEditor() {
       cancelled = true
     }
   }, [clientId])
+
+  function withLiveClientInfo(quote: Quote, liveClient: Client): Quote {
+    return {
+      ...quote,
+      info: { ...quote.info, clientName: liveClient.name, email: liveClient.email, contact: liveClient.contactNumber },
+    }
+  }
 
   const activeQuote = quotes[activeRevisionId]
 
@@ -62,13 +69,34 @@ export function ClientEditor() {
     setQuotes((prev) => ({ ...prev, [activeRevisionId]: quote }))
   }
 
+  const clientSaveRef = useRef(clientService.updateClient)
+  useEffect(() => {
+    if (!client) return
+    const timeout = setTimeout(() => {
+      clientSaveRef.current(client.id, client.name, client.email, client.contactNumber)
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [client])
+
+  function handleClientFieldChange(field: 'clientName' | 'email' | 'contact', value: string) {
+    if (!client) return
+    const updatedClient: Client = {
+      ...client,
+      name: field === 'clientName' ? value : client.name,
+      email: field === 'email' ? value : client.email,
+      contactNumber: field === 'contact' ? value : client.contactNumber,
+    }
+    setClient(updatedClient)
+    setQuotes((prev) => ({ ...prev, [activeRevisionId]: withLiveClientInfo(prev[activeRevisionId], updatedClient) }))
+  }
+
   async function handleSelectRevision(id: string) {
     if (quotes[id]) {
       setActiveRevisionId(id)
       return
     }
     const revision = await revisionService.getRevision(id)
-    setQuotes((prev) => ({ ...prev, [id]: revision.quote }))
+    setQuotes((prev) => ({ ...prev, [id]: client ? withLiveClientInfo(revision.quote, client) : revision.quote }))
     setActiveRevisionId(id)
   }
 
@@ -77,7 +105,7 @@ export function ClientEditor() {
     try {
       const created = await revisionService.cloneRevision(clientId!, activeRevisionId)
       setRevisions((prev) => [...prev, created])
-      setQuotes((prev) => ({ ...prev, [created.id]: created.quote }))
+      setQuotes((prev) => ({ ...prev, [created.id]: client ? withLiveClientInfo(created.quote, client) : created.quote }))
       setActiveRevisionId(created.id)
     } finally {
       setCloning(false)
@@ -121,6 +149,7 @@ export function ClientEditor() {
       onDeleteRevision={handleDeleteRevision}
       quote={activeQuote}
       onQuoteChange={handleQuoteChange}
+      onClientFieldChange={handleClientFieldChange}
     />
   )
 }

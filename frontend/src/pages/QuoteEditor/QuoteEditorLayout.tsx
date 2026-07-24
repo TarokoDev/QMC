@@ -36,6 +36,7 @@ interface Props {
   toolbarLeftExtra?: ReactNode
   quote: Quote
   onQuoteChange: (quote: Quote) => void
+  onClientFieldChange?: (field: 'clientName' | 'email' | 'contact', value: string) => void
 }
 
 export function QuoteEditorLayout({
@@ -50,6 +51,7 @@ export function QuoteEditorLayout({
   toolbarLeftExtra,
   quote,
   onQuoteChange,
+  onClientFieldChange,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('basic')
   const [showPreview, setShowPreview] = useState(false)
@@ -163,6 +165,7 @@ export function QuoteEditorLayout({
                 onChange={onQuoteChange}
                 revisionLabel={activeRevisionLabel}
                 readOnly={!isLatestRevision}
+                onClientFieldChange={onClientFieldChange}
               />
             )}
             {activeTab === 'items' && (
