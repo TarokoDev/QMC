@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useLocalStorageState } from '@/hooks/use-local-storage-state'
 import { cn } from '@/lib/utils'
 import type { AreaOfWork, LineItem, Quote, QuoteSection, Unit } from '@/lib/mock-data'
 import { formatMoney, itemProfitPercent, itemTotal, sectionTotals } from '@/lib/quote-calculations'
@@ -45,6 +47,7 @@ export function QuotationItemsTab({
   const activeSectionLabel = sectionLabel(Math.max(sectionIndex, 0))
   const [deletingArea, setDeletingArea] = useState<{ sectionId: string; areaId: string; label: string } | null>(null)
   const [deletingSection, setDeletingSection] = useState<{ id: string; name: string } | null>(null)
+  const [sectionsCollapsed, setSectionsCollapsed] = useLocalStorageState('qms:sectionsSidebarCollapsed', false)
 
   function updateSection(sectionId: string, updater: (section: QuoteSection) => QuoteSection) {
     onChange({
@@ -129,52 +132,82 @@ export function QuotationItemsTab({
 
   return (
     <div className="flex h-full min-h-0 gap-6">
-      <div className="flex h-full w-56 shrink-0 flex-col rounded-xl border bg-primary/10">
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
-          {quote.sections.map((section, sectionListIndex) => (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => onSelectSection(section.id)}
-              className={cn(
-                'flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-left',
-                section.id === activeSectionId && 'ring-2 ring-primary',
-              )}
-            >
-              <span>
-                <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
-                <span className="block text-xs text-muted-foreground">{section.description}</span>
-              </span>
-              <span className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Delete section"
-                  disabled={readOnly}
-                  className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeletingSection({ id: section.id, name: sectionLabel(sectionListIndex) })
-                  }}
-                >
-                  <Trash2 className="size-4" />
-                </button>
-                <Checkbox
-                  checked={section.complete}
-                  disabled={readOnly}
-                  onClick={(e) => e.stopPropagation()}
-                  onCheckedChange={(checked) => updateSection(section.id, (s) => ({ ...s, complete: checked === true }))}
-                />
-              </span>
-            </button>
-          ))}
+      <div
+        className={cn(
+          'flex h-full shrink-0 flex-col rounded-xl border bg-primary/10',
+          sectionsCollapsed ? 'w-12' : 'w-56',
+        )}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={sectionsCollapsed ? 'Expand sections' : 'Collapse sections'}
+          onClick={() => setSectionsCollapsed(!sectionsCollapsed)}
+          className="m-1 shrink-0 self-end"
+        >
+          {sectionsCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+        </Button>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 pt-0">
+          {quote.sections.map((section, sectionListIndex) =>
+            sectionsCollapsed ? (
+              <button
+                key={section.id}
+                type="button"
+                title={sectionLabel(sectionListIndex)}
+                onClick={() => onSelectSection(section.id)}
+                className={cn(
+                  'flex items-center justify-center rounded-lg border bg-background py-2 text-sm font-medium',
+                  section.id === activeSectionId && 'ring-2 ring-primary',
+                )}
+              >
+                {String.fromCharCode(65 + sectionListIndex)}
+              </button>
+            ) : (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => onSelectSection(section.id)}
+                className={cn(
+                  'flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-left',
+                  section.id === activeSectionId && 'ring-2 ring-primary',
+                )}
+              >
+                <span>
+                  <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
+                  <span className="block text-xs text-muted-foreground">{section.description}</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Delete section"
+                    disabled={readOnly}
+                    className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeletingSection({ id: section.id, name: sectionLabel(sectionListIndex) })
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                  <Checkbox
+                    checked={section.complete}
+                    disabled={readOnly}
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={(checked) => updateSection(section.id, (s) => ({ ...s, complete: checked === true }))}
+                  />
+                </span>
+              </button>
+            ),
+          )}
         </div>
         <button
           type="button"
           onClick={addSection}
           disabled={readOnly}
+          title={sectionsCollapsed ? 'Add new section' : undefined}
           className="shrink-0 rounded-b-xl border-t bg-background py-3 text-center text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
         >
-          Add new section
+          {sectionsCollapsed ? <Plus className="mx-auto size-4" /> : 'Add new section'}
         </button>
       </div>
 
@@ -186,7 +219,7 @@ export function QuotationItemsTab({
             <div className="flex shrink-0 items-start border-b pb-2">
               <div>
                 <p className="text-sm font-medium">{activeSectionLabel}</p>
-                <Input
+                <Textarea
                   value={activeSection.description}
                   onChange={(e) =>
                     updateSection(activeSection.id, (s) => ({ ...s, description: e.target.value }))
@@ -260,7 +293,7 @@ export function QuotationItemsTab({
                             <tr key={item.id} className="border-t">
                               <td className="px-2 py-1.5">{index + 1}</td>
                               <td className="px-2 py-1.5">
-                                <Input
+                                <Textarea
                                   value={item.description}
                                   disabled={readOnly}
                                   onChange={(e) =>
@@ -269,6 +302,7 @@ export function QuotationItemsTab({
                                       description: e.target.value,
                                     }))
                                   }
+                                  className="min-h-0 py-1"
                                 />
                               </td>
                               <td className="px-2 py-1.5">

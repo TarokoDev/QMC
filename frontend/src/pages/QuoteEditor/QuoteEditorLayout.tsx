@@ -1,9 +1,10 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/Breadcrumb'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useLocalStorageState } from '@/hooks/use-local-storage-state'
 import { cn } from '@/lib/utils'
 import type { Quote } from '@/lib/mock-data'
 import { BasicInformationTab } from '@/pages/QuoteEditor/BasicInformationTab'
@@ -58,6 +59,7 @@ export function QuoteEditorLayout({
   onUseMasterTemplate,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('basic')
+  const [tabRailCollapsed, setTabRailCollapsed] = useLocalStorageState('qms:tabRailCollapsed', false)
   const [showPreview, setShowPreview] = useState(false)
   const [activeSectionId, setActiveSectionId] = useState(() => quote.sections[0]?.id ?? '')
   const [addRevisionOpen, setAddRevisionOpen] = useState(false)
@@ -85,18 +87,29 @@ export function QuoteEditorLayout({
       <Breadcrumb items={breadcrumbItems} />
 
       <div className="flex min-h-0 flex-1 gap-6">
-        <div className="flex w-56 shrink-0 flex-col gap-2">
+        <div className={cn('flex shrink-0 flex-col gap-2', tabRailCollapsed ? 'w-12' : 'w-40')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={tabRailCollapsed ? 'Expand tabs' : 'Collapse tabs'}
+            onClick={() => setTabRailCollapsed(!tabRailCollapsed)}
+            className="self-end"
+          >
+            {tabRailCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </Button>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
+              title={tabRailCollapsed ? tab.label : undefined}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'rounded-lg border px-4 py-3 text-left text-sm font-medium',
+                'rounded-lg border px-3 py-3 text-sm font-medium',
+                tabRailCollapsed ? 'text-center' : 'text-left',
                 tab.id === activeTab && 'bg-primary text-primary-foreground',
               )}
             >
-              {tab.label}
+              {tabRailCollapsed ? tab.label.charAt(0) : tab.label}
             </button>
           ))}
         </div>
