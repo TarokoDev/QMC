@@ -194,8 +194,9 @@ npm run dev                # starts Vite on http://localhost:5173
 - 📁 **Folder-based organization** — group categories of work (e.g. HDB, Condo)
 - 📝 **Detailed quote editor** — sections → areas of work → line items with quantity, unit pricing, profit margins
 - 🔄 **Revision history** — each client has independent, persisted revisions (R0, R1, ...)
-- 📋 **Master Template** — org-wide reusable content to seed new client quotes
+- 📋 **Master Template** — org-wide reusable content to seed new client quotes, with a one-click "Use Master Template" / "Reset Template" safety net on a client's latest revision if edits go wrong
 - 📊 **Three-tier inclusion** — section ✓ → area ✓ → item ✓ controls what counts toward totals
+- 🔢 **Live section/area numbering** — "Section A/B/C", "A.1", "A.2" etc. are computed from position, so deleting one reflows the rest instead of leaving gaps
 - 🎁 **FOC items** — mark items as free-of-charge (shows "FOC" label, cost still tracked)
 - 📄 **PDF export** — print-styled preview with `window.print()`, A4 page breaks, repeating headers
 - 📑 **Excel export** — client-side `.xlsx` generation via `xlsx` library
