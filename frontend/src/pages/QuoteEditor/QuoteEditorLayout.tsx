@@ -90,12 +90,19 @@ export function QuoteEditorLayout({
         <div className={cn('flex shrink-0 flex-col gap-2', tabRailCollapsed ? 'w-12' : 'w-40')}>
           <Button
             variant="ghost"
-            size="icon"
+            size={tabRailCollapsed ? 'icon' : 'sm'}
             aria-label={tabRailCollapsed ? 'Expand tabs' : 'Collapse tabs'}
             onClick={() => setTabRailCollapsed(!tabRailCollapsed)}
-            className="self-end"
+            className={tabRailCollapsed ? 'self-center' : 'justify-start self-stretch'}
           >
-            {tabRailCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+            {tabRailCollapsed ? (
+              <ChevronRight className="size-4" />
+            ) : (
+              <>
+                <ChevronLeft className="size-4" />
+                Minimise
+              </>
+            )}
           </Button>
           {TABS.map((tab) => (
             <button

@@ -140,12 +140,19 @@ export function QuotationItemsTab({
       >
         <Button
           variant="ghost"
-          size="icon"
+          size={sectionsCollapsed ? 'icon' : 'sm'}
           aria-label={sectionsCollapsed ? 'Expand sections' : 'Collapse sections'}
           onClick={() => setSectionsCollapsed(!sectionsCollapsed)}
-          className="m-1 shrink-0 self-end"
+          className={cn('m-1 shrink-0', sectionsCollapsed ? 'self-center' : 'justify-start self-stretch')}
         >
-          {sectionsCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          {sectionsCollapsed ? (
+            <ChevronRight className="size-4" />
+          ) : (
+            <>
+              <ChevronLeft className="size-4" />
+              Minimise
+            </>
+          )}
         </Button>
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2 pt-0">
           {quote.sections.map((section, sectionListIndex) =>
