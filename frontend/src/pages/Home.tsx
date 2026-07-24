@@ -14,12 +14,6 @@ export function Home() {
           <CardTitle className="px-4 text-base font-medium">Master Template</CardTitle>
         </Card>
       </Link>
-      <Card
-        aria-disabled
-        className="flex h-40 w-40 cursor-not-allowed items-center justify-center text-center opacity-50"
-      >
-        <CardTitle className="px-4 text-base font-medium">View Quote History</CardTitle>
-      </Card>
     </div>
   )
 }
