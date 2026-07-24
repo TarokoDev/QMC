@@ -91,3 +91,10 @@ export function useCurrentUser(): CurrentUser {
   const phoneNumber = (session.user.user_metadata?.phone_number as string | undefined) ?? ''
   return { name, initials: initialsFor(name), email, phoneNumber }
 }
+
+/** True when signed in as the shared demo playground account (see Login.tsx "Use Demo Account"). */
+export function useIsDemoUser(): boolean {
+  const { session } = useAuth()
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL as string | undefined
+  return Boolean(demoEmail && session?.user.email === demoEmail)
+}

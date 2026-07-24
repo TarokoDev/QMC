@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useAuth, useCurrentUser } from '@/lib/auth-context'
+import { useAuth, useCurrentUser, useIsDemoUser } from '@/lib/auth-context'
 
 export function ProfileSettings() {
   const currentUser = useCurrentUser()
   const { updateProfile, changePassword } = useAuth()
+  const isDemoUser = useIsDemoUser()
 
   const [displayName, setDisplayName] = useState(currentUser.name)
   const [phoneNumber, setPhoneNumber] = useState(currentUser.phoneNumber)
@@ -58,6 +59,12 @@ export function ProfileSettings() {
     <div className="mx-auto flex max-w-lg flex-col gap-8 p-8">
       <h1 className="font-heading text-xl font-semibold">Profile Settings</h1>
 
+      {isDemoUser && (
+        <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+          Profile settings are view-only in the demo playground.
+        </p>
+      )}
+
       <form onSubmit={handleProfileSubmit} className="flex flex-col gap-4 rounded-xl border p-6">
         <h2 className="text-sm font-semibold">Profile</h2>
 
@@ -70,6 +77,7 @@ export function ProfileSettings() {
               setDisplayName(e.target.value)
               setProfileSaved(false)
             }}
+            disabled={isDemoUser}
             required
           />
         </div>
@@ -84,6 +92,7 @@ export function ProfileSettings() {
               setPhoneNumber(e.target.value)
               setProfileSaved(false)
             }}
+            disabled={isDemoUser}
           />
         </div>
 
@@ -95,7 +104,7 @@ export function ProfileSettings() {
         {profileError && <p className="text-sm text-destructive">{profileError}</p>}
         {profileSaved && <p className="text-sm text-muted-foreground">Saved.</p>}
 
-        <Button type="submit" disabled={!displayName.trim() || profileSubmitting} className="self-start">
+        <Button type="submit" disabled={isDemoUser || !displayName.trim() || profileSubmitting} className="self-start">
           Save Profile
         </Button>
       </form>
@@ -113,6 +122,7 @@ export function ProfileSettings() {
               setPassword(e.target.value)
               setPasswordSaved(false)
             }}
+            disabled={isDemoUser}
             required
             minLength={6}
           />
@@ -128,6 +138,7 @@ export function ProfileSettings() {
               setConfirmPassword(e.target.value)
               setPasswordSaved(false)
             }}
+            disabled={isDemoUser}
             required
             minLength={6}
           />
@@ -136,7 +147,7 @@ export function ProfileSettings() {
         {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
         {passwordSaved && <p className="text-sm text-muted-foreground">Password changed.</p>}
 
-        <Button type="submit" disabled={!password || passwordSubmitting} className="self-start">
+        <Button type="submit" disabled={isDemoUser || !password || passwordSubmitting} className="self-start">
           Change Password
         </Button>
       </form>

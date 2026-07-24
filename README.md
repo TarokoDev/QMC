@@ -1182,6 +1182,24 @@ Get tenant-wide company settings and quote configuration. These are seeded, read
 
 ---
 
+### Demo
+
+#### `POST /api/demo/reset`
+
+Wipes and reseeds the demo playground account's data (a `Folder` with HDB "4-Room"/"5-Room" categories, one client each with 2 revisions of realistic line items, plus a matching Master Template) back to a fixed starting dataset. Guarded so it only ever runs against the demo account — every other user gets `403`.
+
+Called by the frontend's "Use Demo Account" login button, on demo-user logout, and via the "Reset Playground" menu item — see `CLAUDE.md` "Environments" for the full flow.
+
+**Response `204`:** No content.
+
+**Response `403`:**
+
+```json
+{ "error": "Not the demo account" }
+```
+
+---
+
 ### API Routes Summary
 
 | Method | Route | Description |
@@ -1211,6 +1229,7 @@ Get tenant-wide company settings and quote configuration. These are seeded, read
 | GET | `/api/master-template` | Get master template (auto-creates) |
 | PUT | `/api/master-template/quote` | Replace master template quote (autosave) |
 | GET | `/api/settings` | Get company settings + quote config |
+| POST | `/api/demo/reset` | Wipe and reseed the demo playground account's data |
 
 ---
 

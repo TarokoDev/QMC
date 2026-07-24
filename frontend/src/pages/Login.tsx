@@ -3,6 +3,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
+import { resetDemoPlayground } from '@/lib/demo-service'
+
+const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined
 
 export function Login() {
   const { signIn } = useAuth()
@@ -10,6 +14,7 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [demoSubmitting, setDemoSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -18,6 +23,24 @@ export function Login() {
     const { error } = await signIn(email, password)
     setSubmitting(false)
     if (error) setError(error)
+  }
+
+  async function handleDemoLogin() {
+    if (!DEMO_EMAIL || !DEMO_PASSWORD) {
+      setError('Demo account is not configured (VITE_DEMO_EMAIL/VITE_DEMO_PASSWORD).')
+      return
+    }
+    setDemoSubmitting(true)
+    setError(null)
+    const { error } = await signIn(DEMO_EMAIL, DEMO_PASSWORD)
+    if (error) {
+      setDemoSubmitting(false)
+      setError(error)
+      return
+    }
+    // Always start from a clean playground, regardless of how the last demo session ended.
+    await resetDemoPlayground()
+    setDemoSubmitting(false)
   }
 
   return (
@@ -52,6 +75,10 @@ export function Login() {
 
         <Button type="submit" disabled={submitting}>
           Log In
+        </Button>
+
+        <Button type="button" variant="outline" disabled={demoSubmitting} onClick={handleDemoLogin}>
+          {demoSubmitting ? 'Loading Demo...' : 'Use Demo Account'}
         </Button>
       </form>
     </div>

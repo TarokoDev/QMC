@@ -129,48 +129,50 @@ export function QuotationItemsTab({
 
   return (
     <div className="flex h-full min-h-0 gap-6">
-      <div className="flex h-full w-56 shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border bg-primary/10 p-2">
-        {quote.sections.map((section, sectionListIndex) => (
-          <button
-            key={section.id}
-            type="button"
-            onClick={() => onSelectSection(section.id)}
-            className={cn(
-              'flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-left',
-              section.id === activeSectionId && 'ring-2 ring-primary',
-            )}
-          >
-            <span>
-              <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
-              <span className="block text-xs text-muted-foreground">{section.description}</span>
-            </span>
-            <span className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Delete section"
-                disabled={readOnly}
-                className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setDeletingSection({ id: section.id, name: sectionLabel(sectionListIndex) })
-                }}
-              >
-                <Trash2 className="size-4" />
-              </button>
-              <Checkbox
-                checked={section.complete}
-                disabled={readOnly}
-                onClick={(e) => e.stopPropagation()}
-                onCheckedChange={(checked) => updateSection(section.id, (s) => ({ ...s, complete: checked === true }))}
-              />
-            </span>
-          </button>
-        ))}
+      <div className="flex h-full w-56 shrink-0 flex-col rounded-xl border bg-primary/10">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
+          {quote.sections.map((section, sectionListIndex) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => onSelectSection(section.id)}
+              className={cn(
+                'flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-left',
+                section.id === activeSectionId && 'ring-2 ring-primary',
+              )}
+            >
+              <span>
+                <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
+                <span className="block text-xs text-muted-foreground">{section.description}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Delete section"
+                  disabled={readOnly}
+                  className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeletingSection({ id: section.id, name: sectionLabel(sectionListIndex) })
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                </button>
+                <Checkbox
+                  checked={section.complete}
+                  disabled={readOnly}
+                  onClick={(e) => e.stopPropagation()}
+                  onCheckedChange={(checked) => updateSection(section.id, (s) => ({ ...s, complete: checked === true }))}
+                />
+              </span>
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           onClick={addSection}
           disabled={readOnly}
-          className="rounded-lg py-4 text-center text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
+          className="shrink-0 rounded-b-xl border-t bg-background py-3 text-center text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
         >
           Add new section
         </button>
@@ -242,9 +244,9 @@ export function QuotationItemsTab({
                           <tr className="text-muted-foreground">
                             <th className="w-8 px-2 py-1">#</th>
                             <th className="px-2 py-1">Item Description</th>
-                            <th className="w-14 px-2 py-1">Qty</th>
-                            <th className="w-16 px-2 py-1">Unit</th>
-                            <th className="w-20 px-2 py-1">Cost (S$)</th>
+                            <th className="w-24 px-2 py-1">Qty</th>
+                            <th className="w-24 px-2 py-1">Unit</th>
+                            <th className="w-24 px-2 py-1">Cost (S$)</th>
                             <th className="w-24 px-2 py-1">Selling (S$)</th>
                             <th className="w-20 px-2 py-1">Total (S$)</th>
                             <th className="w-16 px-2 py-1">P/L (%)</th>

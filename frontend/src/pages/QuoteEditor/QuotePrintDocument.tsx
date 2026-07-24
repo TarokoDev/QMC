@@ -135,10 +135,7 @@ export function QuotePrintDocument({
               <tbody key={section.id} className="print-avoid-break">
                 <tr className="bg-neutral-100">
                   <td className={`${cell} font-bold`}>{sectionNumber}.</td>
-                  <td className={`${cell} font-bold`} colSpan={3}>
-                    {sectionNumber}
-                    {section.description && <span className="font-normal"> — {section.description}</span>}
-                  </td>
+                  <td className={`${cell} font-bold`} colSpan={3}>{section.description}</td>
                 </tr>
                 {areas.map((area, areaIndex) => {
                   const areaNumber = `${sectionNumber}.${areaIndex + 1}`

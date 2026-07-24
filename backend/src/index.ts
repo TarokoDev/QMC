@@ -3,6 +3,7 @@ import express, { type ErrorRequestHandler } from 'express'
 import { ZodError } from 'zod'
 import { categoriesRouter } from './routes/categories.js'
 import { clientsRouter } from './routes/clients.js'
+import { demoRouter } from './routes/demo.js'
 import { foldersRouter } from './routes/folders.js'
 import { masterTemplateRouter } from './routes/master-template.js'
 import { revisionsRouter } from './routes/revisions.js'
@@ -24,6 +25,7 @@ app.use('/api', clientsRouter)
 app.use('/api', revisionsRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/master-template', masterTemplateRouter)
+app.use('/api/demo', demoRouter)
 
 app.use((req, res) => {
   res.status(404).json({ error: `Not found: ${req.method} ${req.path}` })
