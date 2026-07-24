@@ -46,9 +46,9 @@ export function exportQuoteToExcel({
   if (summary.sections.length === 0) {
     rows.push(['No items included yet.'])
   } else {
-    summary.sections.forEach(({ section, areas }, sectionIndex) => {
+    summary.sections.forEach(({ areas }, sectionIndex) => {
       const sectionNumber = toLetter(sectionIndex)
-      rows.push([`${sectionNumber}.`, section.name.replace('Section ', '')])
+      rows.push([`${sectionNumber}.`, sectionNumber])
       areas.forEach((area, areaIndex) => {
         const areaNumber = `${sectionNumber}.${areaIndex + 1}`
         rows.push([areaNumber, area.name])

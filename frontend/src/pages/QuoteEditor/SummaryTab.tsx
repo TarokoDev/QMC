@@ -47,7 +47,7 @@ export function SummaryTab({ quote }: Props) {
                     <tr className="bg-muted/25">
                       <td className="border px-3 py-1.5 align-top font-semibold">{sectionNumber}.</td>
                       <td colSpan={3} className="border px-3 py-1.5 font-semibold">
-                        {section.name.replace('Section ', '')}
+                        {sectionNumber}
                         {section.description && (
                           <span className="font-normal text-muted-foreground"> — {section.description}</span>
                         )}

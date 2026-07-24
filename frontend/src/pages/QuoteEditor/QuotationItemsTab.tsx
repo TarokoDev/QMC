@@ -1,7 +1,9 @@
-import { Menu, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
@@ -24,6 +26,10 @@ function nextId(prefix: string) {
   return `${prefix}-${idCounter}`
 }
 
+function sectionLabel(index: number) {
+  return `Section ${String.fromCharCode(65 + index)}`
+}
+
 export function QuotationItemsTab({
   quote,
   onChange,
@@ -34,6 +40,11 @@ export function QuotationItemsTab({
 }: Props) {
   const { unitOptions, currencySymbol } = useSettings()
   const money = (value: number) => formatMoney(value, currencySymbol)
+  const sectionIndex = quote.sections.findIndex((section) => section.id === activeSectionId)
+  const sectionLetter = String.fromCharCode(65 + Math.max(sectionIndex, 0))
+  const activeSectionLabel = sectionLabel(Math.max(sectionIndex, 0))
+  const [deletingArea, setDeletingArea] = useState<{ sectionId: string; areaId: string; label: string } | null>(null)
+  const [deletingSection, setDeletingSection] = useState<{ id: string; name: string } | null>(null)
 
   function updateSection(sectionId: string, updater: (section: QuoteSection) => QuoteSection) {
     onChange({
@@ -59,7 +70,7 @@ export function QuotationItemsTab({
   function addSection() {
     const newSection: QuoteSection = {
       id: nextId('section'),
-      name: `Section ${String.fromCharCode(65 + quote.sections.length)}`,
+      name: 'Section',
       description: 'New Section',
       complete: false,
       areas: [],
@@ -80,6 +91,13 @@ export function QuotationItemsTab({
     updateSection(sectionId, (section) => ({
       ...section,
       areas: [...section.areas, { id: nextId('area'), name: 'New Area of Work', included: false, items: [] }],
+    }))
+  }
+
+  function deleteArea(sectionId: string, areaId: string) {
+    updateSection(sectionId, (section) => ({
+      ...section,
+      areas: section.areas.filter((area) => area.id !== areaId),
     }))
   }
 
@@ -112,7 +130,7 @@ export function QuotationItemsTab({
   return (
     <div className="flex h-full min-h-0 gap-6">
       <div className="flex h-full w-56 shrink-0 flex-col gap-2 overflow-y-auto rounded-xl border bg-primary/10 p-2">
-        {quote.sections.map((section) => (
+        {quote.sections.map((section, sectionListIndex) => (
           <button
             key={section.id}
             type="button"
@@ -123,17 +141,28 @@ export function QuotationItemsTab({
             )}
           >
             <span>
-              <span className="block text-sm font-medium">{section.name}</span>
+              <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
               <span className="block text-xs text-muted-foreground">{section.description}</span>
             </span>
             <span className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Delete section"
+                disabled={readOnly}
+                className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDeletingSection({ id: section.id, name: sectionLabel(sectionListIndex) })
+                }}
+              >
+                <Trash2 className="size-4" />
+              </button>
               <Checkbox
                 checked={section.complete}
                 disabled={readOnly}
                 onClick={(e) => e.stopPropagation()}
                 onCheckedChange={(checked) => updateSection(section.id, (s) => ({ ...s, complete: checked === true }))}
               />
-              <Menu className="size-4 text-muted-foreground" />
             </span>
           </button>
         ))}
@@ -152,9 +181,9 @@ export function QuotationItemsTab({
           <p className="text-sm text-muted-foreground">Select a section to view items.</p>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-4">
-            <div className="flex shrink-0 items-start justify-between border-b pb-2">
+            <div className="flex shrink-0 items-start border-b pb-2">
               <div>
-                <p className="text-sm font-medium underline">{activeSection.name}</p>
+                <p className="text-sm font-medium">{activeSectionLabel}</p>
                 <Input
                   value={activeSection.description}
                   onChange={(e) =>
@@ -164,17 +193,16 @@ export function QuotationItemsTab({
                   className="mt-1 max-w-xs"
                 />
               </div>
-              <Button variant="outline" disabled={readOnly} onClick={() => deleteSection(activeSection.id)}>
-                Delete Section
-              </Button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
               <Accordion type="single" collapsible className="w-full">
-                {activeSection.areas.map((area) => (
+                {activeSection.areas.map((area, areaIndex) => (
                   <AccordionItem key={area.id} value={area.id}>
-                    <div className="flex items-center gap-2">
-                      <Menu className="size-4 shrink-0 text-muted-foreground" />
+                    <div className="flex items-center gap-2 bg-muted/30 px-2 py-1.5 text-sm">
+                      <span className="w-8 shrink-0 font-medium text-muted-foreground">
+                        {sectionLetter}.{areaIndex + 1}
+                      </span>
                       <Input
                         value={area.name}
                         onChange={(e) =>
@@ -192,7 +220,21 @@ export function QuotationItemsTab({
                           updateArea(activeSection.id, area.id, (a) => ({ ...a, included: checked === true }))
                         }
                       />
-                      <AccordionTrigger className="flex-1 justify-end" />
+                      <div className="flex flex-1 items-center justify-end gap-1">
+                        <AccordionTrigger className="flex-none justify-end" />
+                        <button
+                          type="button"
+                          aria-label="Delete area of work"
+                          disabled={readOnly}
+                          className="shrink-0 rounded p-1 text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeletingArea({ sectionId: activeSection.id, areaId: area.id, label: `${sectionLetter}.${areaIndex + 1} ${area.name}` })
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
                     </div>
                     <AccordionContent>
                       <table className="w-full text-left text-sm">
@@ -353,8 +395,8 @@ export function QuotationItemsTab({
                 const totals = sectionTotals(activeSection)
                 return (
                   <>
-                    <TotalBox label={`Total Price of ${activeSection.name}`} value={totals.price} currencySymbol={currencySymbol} />
-                    <TotalBox label={`Total Cost Price of ${activeSection.name}`} value={totals.cost} currencySymbol={currencySymbol} />
+                    <TotalBox label={`Total Price of ${activeSectionLabel}`} value={totals.price} currencySymbol={currencySymbol} />
+                    <TotalBox label={`Total Cost Price of ${activeSectionLabel}`} value={totals.cost} currencySymbol={currencySymbol} />
                     <TotalBox label="Profit / Loss" value={totals.profit} currencySymbol={currencySymbol} />
                   </>
                 )
@@ -363,6 +405,30 @@ export function QuotationItemsTab({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deletingArea !== null}
+        onOpenChange={(open) => !open && setDeletingArea(null)}
+        title={`Delete area of work "${deletingArea?.label}"?`}
+        description="This also deletes all its line items."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deletingArea) deleteArea(deletingArea.sectionId, deletingArea.areaId)
+        }}
+      />
+
+      <ConfirmDialog
+        open={deletingSection !== null}
+        onOpenChange={(open) => !open && setDeletingSection(null)}
+        title={`Delete section "${deletingSection?.name}"?`}
+        description="This also deletes all its areas of work and line items."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deletingSection) deleteSection(deletingSection.id)
+        }}
+      />
     </div>
   )
 }

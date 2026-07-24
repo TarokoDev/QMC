@@ -136,7 +136,7 @@ export function QuotePrintDocument({
                 <tr className="bg-neutral-100">
                   <td className={`${cell} font-bold`}>{sectionNumber}.</td>
                   <td className={`${cell} font-bold`} colSpan={3}>
-                    {section.name.replace('Section ', '')}
+                    {sectionNumber}
                     {section.description && <span className="font-normal"> — {section.description}</span>}
                   </td>
                 </tr>
