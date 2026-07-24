@@ -3,7 +3,7 @@ import type { CompanyInfo, Quote } from '@/lib/mock-data'
 import { getQuoteSummary, itemTotal } from '@/lib/quote-calculations'
 import type { PaymentTerm } from '@/lib/settings-service'
 
-interface ExportParams {
+export interface ExportParams {
   quote: Quote
   revisionLabel: string
   company: CompanyInfo
@@ -13,7 +13,7 @@ interface ExportParams {
 }
 
 /** 0 -> "A", 25 -> "Z", 26 -> "AA", ... */
-function toLetter(index: number): string {
+export function toLetter(index: number): string {
   let n = index
   let label = ''
   do {
@@ -23,14 +23,15 @@ function toLetter(index: number): string {
   return label
 }
 
-export function exportQuoteToExcel({
+/** Pure worksheet layout: builds the array-of-arrays the sheet is made from. */
+export function buildExcelRows({
   quote,
   revisionLabel,
   company,
   gstRate,
   currencySymbol,
   paymentTermsSchedule,
-}: ExportParams) {
+}: ExportParams): (string | number)[][] {
   const summary = getQuoteSummary(quote, gstRate)
   const money = (value: number) => `${currencySymbol}${value.toFixed(2)}`
 
@@ -76,11 +77,17 @@ export function exportQuoteToExcel({
     rows.push([index + 1, term.label, money(summary.grandTotal * term.percent)])
   })
 
+  return rows
+}
+
+export function exportQuoteToExcel(params: ExportParams) {
+  const rows = buildExcelRows(params)
+
   const worksheet = XLSX.utils.aoa_to_sheet(rows)
   worksheet['!cols'] = [{ wch: 10 }, { wch: 40 }, { wch: 10 }, { wch: 12 }, { wch: 14 }]
 
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Quote')
 
-  XLSX.writeFile(workbook, `${quote.info.refNumber || 'quote'}-${revisionLabel}.xlsx`)
+  XLSX.writeFile(workbook, `${params.quote.info.refNumber || 'quote'}-${params.revisionLabel}.xlsx`)
 }

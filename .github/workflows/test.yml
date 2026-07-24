@@ -1,0 +1,54 @@
+# Regression gate: runs unit tests, type-check builds, and lint on every
+# push/PR to the three deploy branches. No secrets needed — all tests are
+# pure (no DB, no Supabase, no network). See docs/testing.md.
+name: Tests
+
+on:
+  push:
+    branches: [main, testing, prod]
+  pull_request:
+    branches: [main, testing, prod]
+
+jobs:
+  frontend:
+    name: Frontend (tests + build + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # Placeholder env vars: Vite inlines these at build time; the build
+      # only needs them to exist, real values live in Netlify.
+      - run: npm run build
+        env:
+          VITE_API_URL: http://localhost:4000
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+
+  backend:
+    name: Backend (tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      # prisma generate needs no DB connection — just emits the client types.
+      - run: npx prisma generate
+      - run: npm test
+      - run: npm run build
