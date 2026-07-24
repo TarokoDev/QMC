@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
+- `README.md` — project overview, setup guide, full API documentation with JSON request/response samples for all 25 endpoints, tech stack, architecture diagram, and data types reference. **Refer to this file for API endpoint details, request/response shapes, and onboarding instructions.**
 - `frontend/` — the QMS (Quote Management System) frontend, Vite + React + TS.
 - `backend/` — Express + TypeScript + Prisma API, backed by a live Supabase Postgres database (migrated + seeded). See `backend/SUPABASE_SETUP.md` if provisioning a new one.
 - `docs/ui-ux/` — numbered wireframes (`1.png`–`7.png`) that define the product flows. When implementing UI, match these against the flow number, not file order — several wireframes represent the same screen in different interaction states rather than separate pages (e.g. flows 4/5/6 are all the "Quotation Items" screen with different accordion/checkbox states).
