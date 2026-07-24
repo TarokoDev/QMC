@@ -9,6 +9,7 @@ import { Card, CardTitle } from '@/components/ui/card'
 import { useCategoryLibrary } from '@/lib/category-library-context'
 import * as clientService from '@/lib/client-service'
 import type { Client } from '@/lib/client-service'
+import { capitalizeWords } from '@/lib/utils'
 
 export function ClientList() {
   const navigate = useNavigate()
@@ -88,9 +89,11 @@ export function ClientList() {
             <Card
               key={client.id}
               onClick={() => navigate(`/quotes/edit/client/${client.id}`)}
-              className="group/client relative flex h-28 cursor-pointer items-center justify-center text-center hover:bg-muted/50"
+              className="group/client relative flex h-28 cursor-pointer flex-col items-center justify-center gap-0.5 text-center hover:bg-muted/50"
             >
-              <CardTitle className="px-2 text-sm font-medium">{client.name}</CardTitle>
+              <CardTitle className="px-2 text-sm font-medium">{capitalizeWords(client.name)}</CardTitle>
+              {client.contactNumber && <p className="px-2 text-xs text-muted-foreground">{client.contactNumber}</p>}
+              {client.email && <p className="px-2 text-xs text-muted-foreground">{client.email}</p>}
               <div className="absolute top-2 right-2 hidden gap-1 group-hover/client:flex">
                 <button
                   type="button"
