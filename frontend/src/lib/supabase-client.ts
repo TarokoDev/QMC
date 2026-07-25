@@ -9,14 +9,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Kept in memory (not re-fetched per request) so api-client.ts can attach it
-// synchronously to every request without an extra async round-trip.
-let accessToken: string | null = null
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  accessToken = session?.access_token ?? null
-})
-
-export function getAccessToken(): string | null {
-  return accessToken
+/**
+ * Reads the access token straight from the Supabase client rather than a cached
+ * variable. `getSession()` serves an in-memory session without a network call and
+ * only goes remote when the JWT actually needs refreshing, so this is cheap.
+ *
+ * It used to be a module-level string assigned by an `onAuthStateChange` listener.
+ * That listener fires asynchronously after Supabase rehydrates (and possibly
+ * refreshes) the stored session, so any request issued during that window — most
+ * often the folder/category preload on app mount — went out with no Authorization
+ * header at all and came back 401. Awaiting the session removes the race entirely.
+ */
+export async function getAccessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 }

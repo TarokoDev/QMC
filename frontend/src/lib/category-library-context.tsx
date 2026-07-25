@@ -7,6 +7,9 @@ interface CategoryLibraryValue {
   folders: Folder[]
   categories: Category[]
   loading: boolean
+  /** Non-null when the initial preload failed — pages render this instead of an empty grid. */
+  error: string | null
+  reload: () => void
   addFolder: (name: string) => Promise<Folder>
   renameFolder: (id: string, name: string) => Promise<void>
   deleteFolder: (id: string) => Promise<void>
@@ -25,24 +28,38 @@ export function CategoryLibraryProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const reload = useCallback(() => setReloadKey((key) => key + 1), [])
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const loadedFolders = await service.listFolders()
-      const loadedCategories = (
-        await Promise.all(loadedFolders.map((folder) => service.listCategories(folder.id)))
-      ).flat()
-      if (cancelled) return
-      setFolders(loadedFolders)
-      setCategories(loadedCategories)
-      setLoading(false)
+      setLoading(true)
+      setError(null)
+      try {
+        const loadedFolders = await service.listFolders()
+        const loadedCategories = (
+          await Promise.all(loadedFolders.map((folder) => service.listCategories(folder.id)))
+        ).flat()
+        if (cancelled) return
+        setFolders(loadedFolders)
+        setCategories(loadedCategories)
+      } catch (err) {
+        if (cancelled) return
+        // Without this the failure was invisible: `loading` stayed true forever and
+        // `folders` stayed empty, so a failed load looked identical to "no data yet".
+        setError(err instanceof Error ? err.message : 'Failed to load folders.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     load()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
   const addFolder = useCallback(async (name: string) => {
     const folder = await service.createFolder(name)
@@ -99,6 +116,8 @@ export function CategoryLibraryProvider({ children }: { children: ReactNode }) {
     folders,
     categories,
     loading,
+    error,
+    reload,
     addFolder,
     renameFolder: renameFolderFn,
     deleteFolder: deleteFolderFn,

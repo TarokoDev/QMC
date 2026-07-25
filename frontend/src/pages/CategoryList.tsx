@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Breadcrumb } from '@/components/Breadcrumb'
 import { CategoryFormDialog } from '@/components/CategoryFormDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { LoadErrorState } from '@/components/LoadErrorState'
 import { PromptDialog } from '@/components/PromptDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardTitle } from '@/components/ui/card'
@@ -13,8 +14,17 @@ import type { Category } from '@/lib/category-library-service'
 export function CategoryList() {
   const navigate = useNavigate()
   const { folderId } = useParams<'folderId'>()
-  const { folders, loading, categoriesInFolder, createCategory, duplicateCategory, updateCategory, deleteCategory } =
-    useCategoryLibrary()
+  const {
+    folders,
+    loading,
+    error,
+    reload,
+    categoriesInFolder,
+    createCategory,
+    duplicateCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategoryLibrary()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
@@ -47,6 +57,17 @@ export function CategoryList() {
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading...</p>
+  }
+
+  // Must precede the `!folder` check — a failed load leaves `folders` empty, which
+  // would otherwise render a misleading "Folder not found."
+  if (error) {
+    return (
+      <div className="flex h-full flex-col overflow-y-auto">
+        <Breadcrumb items={[{ label: 'Generate Quote', to: '/quotes/new/category' }]} />
+        <LoadErrorState message={error} onRetry={reload} />
+      </div>
+    )
   }
 
   if (!folder) {

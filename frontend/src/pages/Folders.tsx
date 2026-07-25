@@ -3,13 +3,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Breadcrumb } from '@/components/Breadcrumb'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { LoadErrorState } from '@/components/LoadErrorState'
 import { PromptDialog } from '@/components/PromptDialog'
 import { Card, CardTitle } from '@/components/ui/card'
 import { useCategoryLibrary } from '@/lib/category-library-context'
 
 export function Folders() {
   const navigate = useNavigate()
-  const { folders, loading, addFolder, renameFolder, deleteFolder } = useCategoryLibrary()
+  const { folders, loading, error, reload, addFolder, renameFolder, deleteFolder } = useCategoryLibrary()
 
   const [addOpen, setAddOpen] = useState(false)
   const [renamingFolder, setRenamingFolder] = useState<{ id: string; name: string } | null>(null)
@@ -31,6 +32,8 @@ export function Folders() {
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading...</p>
+      ) : error ? (
+        <LoadErrorState message={error} onRetry={reload} />
       ) : (
         <div className="grid grid-cols-4 gap-4">
           {folders.map((folder) => (

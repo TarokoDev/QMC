@@ -15,7 +15,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error('VITE_API_URL is not set — see frontend/.env.example')
   }
 
-  const token = getAccessToken()
+  const token = await getAccessToken()
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
