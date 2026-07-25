@@ -5,6 +5,10 @@ const { getAccessToken } = vi.hoisted(() => ({ getAccessToken: vi.fn() }))
 
 vi.mock('@/lib/supabase-client', () => ({ getAccessToken }))
 
+// api-client reads VITE_API_URL at module load; stub it before the import so
+// the tests don't depend on a local .env (CI has none).
+vi.stubEnv('VITE_API_URL', 'http://api.test')
+
 const { api, ApiError } = await import('@/lib/api-client')
 
 function jsonResponse(body: unknown, status = 200) {
