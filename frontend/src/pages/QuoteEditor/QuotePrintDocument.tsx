@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import type { CompanyInfo, Quote } from '@/lib/mock-data'
-import { formatMoney, getQuoteSummary, itemTotal } from '@/lib/quote-calculations'
+import { getQuoteSummary, itemTotal } from '@/lib/quote-calculations'
 import type { CurrentUser } from '@/lib/auth-context'
 import type { PaymentTerm } from '@/lib/settings-service'
 
@@ -69,7 +69,8 @@ export function QuotePrintDocument({
   paymentTermsSchedule,
 }: Props) {
   const summary = getQuoteSummary(quote, gstRate)
-  const money = (value: number) => formatMoney(value, currencySymbol)
+  const amount = (value: number) =>
+    value.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
     <div className="bg-white font-sans text-[11px] text-black">
@@ -114,16 +115,22 @@ export function QuotePrintDocument({
       <table className="mt-2 w-full border-collapse">
         <thead>
           <tr className="bg-neutral-200">
-            <th className={`${cell} w-14 text-left font-bold`}>No.</th>
-            <th className={`${cell} text-left font-bold`}>Description</th>
-            <th className={`${cell} w-24 text-right font-bold`}>Qty</th>
-            <th className={`${cell} w-24 text-right font-bold`}>Amount</th>
+            <th className={`${cell} text-left font-bold whitespace-nowrap`}>No.</th>
+            <th className={`${cell} text-left font-bold whitespace-nowrap`}>Description</th>
+            <th className={`${cell} text-right font-bold whitespace-nowrap`}>Qty</th>
+            <th className={`${cell} text-right font-bold whitespace-nowrap`}>Unit</th>
+            <th className={`${cell} text-right font-bold whitespace-nowrap`}>
+              Unit Price ({currencySymbol})
+            </th>
+            <th className={`${cell} text-right font-bold whitespace-nowrap`}>
+              Amount ({currencySymbol})
+            </th>
           </tr>
         </thead>
         {summary.sections.length === 0 ? (
           <tbody>
             <tr>
-              <td className={cell} colSpan={4}>
+              <td className={cell} colSpan={6}>
                 No items included yet.
               </td>
             </tr>
@@ -134,29 +141,31 @@ export function QuotePrintDocument({
             return (
               <tbody key={section.id} className="print-avoid-break">
                 <tr className="bg-neutral-100">
-                  <td className={`${cell} font-bold`}>{sectionNumber}.</td>
-                  <td className={`${cell} font-bold`} colSpan={3}>{section.description}</td>
+                  <td className={`${cell} font-bold whitespace-nowrap`}>{sectionNumber}.</td>
+                  <td className={`${cell} font-bold`} colSpan={5}>{section.description}</td>
                 </tr>
                 {areas.map((area, areaIndex) => {
                   const areaNumber = `${sectionNumber}.${areaIndex + 1}`
                   return (
                     <Fragment key={area.id}>
                       <tr>
-                        <td className={`${cell} font-medium`}>{areaNumber}</td>
-                        <td className={`${cell} font-medium`} colSpan={3}>
+                        <td className={`${cell} font-medium whitespace-nowrap`}>{areaNumber}</td>
+                        <td className={`${cell} font-medium`} colSpan={5}>
                           {area.name}
                         </td>
                       </tr>
                       {area.items.map((item, itemIndex) => (
                         <tr key={item.id}>
-                          <td className={cell}>
+                          <td className={`${cell} whitespace-nowrap`}>
                             {areaNumber}.{itemIndex + 1}
                           </td>
                           <td className={cell}>{item.description}</td>
-                          <td className={`${cell} text-right`}>
-                            {item.qty} {item.unit}
+                          <td className={`${cell} text-right whitespace-nowrap`}>{item.qty}</td>
+                          <td className={`${cell} text-right whitespace-nowrap`}>{item.unit}</td>
+                          <td className={`${cell} text-right whitespace-nowrap`}>{amount(item.selling)}</td>
+                          <td className={`${cell} text-right whitespace-nowrap`}>
+                            {item.foc ? 'FOC' : amount(itemTotal(item))}
                           </td>
-                          <td className={`${cell} text-right`}>{item.foc ? 'FOC' : money(itemTotal(item))}</td>
                         </tr>
                       ))}
                     </Fragment>
@@ -168,22 +177,22 @@ export function QuotePrintDocument({
         )}
         <tbody className="print-avoid-break">
           <tr>
-            <td className={cell} colSpan={3}>
+            <td className={cell} colSpan={5}>
               <span className="font-bold">Sub Total</span>
             </td>
-            <td className={`${cell} text-right font-bold`}>{money(summary.subTotal)}</td>
+            <td className={`${cell} text-right font-bold whitespace-nowrap`}>{amount(summary.subTotal)}</td>
           </tr>
           <tr>
-            <td className={cell} colSpan={3}>
+            <td className={cell} colSpan={5}>
               GST {(gstRate * 100).toFixed(0)}%
             </td>
-            <td className={`${cell} text-right`}>{money(summary.gst)}</td>
+            <td className={`${cell} text-right whitespace-nowrap`}>{amount(summary.gst)}</td>
           </tr>
           <tr className="bg-neutral-200">
-            <td className={`${cell} font-bold`} colSpan={3}>
+            <td className={`${cell} font-bold`} colSpan={5}>
               Grand Total
             </td>
-            <td className={`${cell} text-right font-bold`}>{money(summary.grandTotal)}</td>
+            <td className={`${cell} text-right font-bold whitespace-nowrap`}>{amount(summary.grandTotal)}</td>
           </tr>
         </tbody>
       </table>
@@ -191,17 +200,21 @@ export function QuotePrintDocument({
       <table className="print-avoid-break mt-2 w-full border-collapse">
         <thead>
           <tr className="bg-neutral-200">
-            <th className={`${cell} w-10 text-left font-bold`}>No.</th>
-            <th className={`${cell} text-left font-bold`}>Payment Terms & Schedule</th>
-            <th className={`${cell} w-28 text-right font-bold`}>Amount</th>
+            <th className={`${cell} text-left font-bold whitespace-nowrap`}>No.</th>
+            <th className={`${cell} text-left font-bold whitespace-nowrap`}>Payment Terms & Schedule</th>
+            <th className={`${cell} text-right font-bold whitespace-nowrap`}>
+              Amount ({currencySymbol})
+            </th>
           </tr>
         </thead>
         <tbody>
           {paymentTermsSchedule.map((term, index) => (
             <tr key={term.label}>
-              <td className={cell}>{index + 1}</td>
+              <td className={`${cell} whitespace-nowrap`}>{index + 1}</td>
               <td className={cell}>{term.label}</td>
-              <td className={`${cell} text-right`}>{money(summary.grandTotal * term.percent)}</td>
+              <td className={`${cell} text-right whitespace-nowrap`}>
+                {amount(summary.grandTotal * term.percent)}
+              </td>
             </tr>
           ))}
         </tbody>

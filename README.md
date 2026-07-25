@@ -198,6 +198,8 @@ npm run dev                # starts Vite on http://localhost:5173
 - 📊 **Three-tier inclusion** — section ✓ → area ✓ → item ✓ controls what counts toward totals
 - 🔢 **Live section/area numbering** — "Section A/B/C", "A.1", "A.2" etc. are computed from position, so deleting one reflows the rest instead of leaving gaps
 - 🎁 **FOC items** — mark items as free-of-charge (shows "FOC" label, cost still tracked)
+- 🧾 **Consistent output columns** — Summary, Preview/Print, and Excel all use `No. · Description · Qty · Unit · Unit Price · Amount`; currency lives in the header (`Amount (S$)`) and cells are plain numbers
+- 💰 **Summary cost/profit visibility** — the Summary tab (internal-only) swaps Unit Price for `Cost Price · Seller Price · Amount · Profit/Loss (%)` and shows Total Cost / Total Price / Profit-Loss metric boxes
 - 📄 **PDF export** — print-styled preview with `window.print()`, A4 page breaks, repeating headers
 - 📑 **Excel export** — client-side `.xlsx` generation via `xlsx` library
 - 🔐 **Supabase Auth** — asymmetric JWT (ES256), per-user data scoping via `ownerId`
@@ -1285,6 +1287,10 @@ interface LineItem {
 #### Three-tier total gating
 
 For a line item to count toward totals: **section.complete** ✓ → **area.included** ✓ → **item.inc** ✓ (all three must be true). Additionally, `item.foc = true` zeroes that item's selling total regardless of `inc`.
+
+#### Output columns
+
+Read-only output (Summary tab, Preview/Print, Excel) shares one column contract: `No. · Description · Qty · Unit · Unit Price · Amount`, where Unit Price is `item.selling` and Amount is `itemTotal(item)` (literal `FOC` when `item.foc`). Currency is carried in the header text (`Unit Price (S$)`, `Amount (S$)`) and cells hold bare numbers, so Excel amounts stay numeric rather than currency-prefixed strings. The Summary tab additionally exposes internal figures the client-facing output never shows — `Cost Price · Seller Price · Amount · Profit/Loss (%)` per row, plus Total Cost / Total Price / Profit-Loss (amount and margin over total cost) metric boxes above Payment Terms. The editable Quotation Items table keeps its own column set and is intentionally excluded from this contract.
 
 ---
 

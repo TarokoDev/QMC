@@ -69,13 +69,19 @@ describe('buildExcelRows', () => {
     expect(rows.find((row) => row[0] === 'B.1')?.[1]).toBe('Bedroom')
   })
 
+  it('uses No. / Description / Qty / Unit / Unit Price / Amount headers with the currency in the header', () => {
+    const rows = buildExcelRows(makeParams())
+    expect(rows).toContainEqual(['No.', 'Description', 'Qty', 'Unit', 'Unit Price (S$)', 'Amount (S$)'])
+  })
+
   it('renders the literal text FOC — not 0 — in the Amount column for FOC items', () => {
     const quote = makeQuote({
-      sections: [makeSection({ areas: [makeArea({ items: [makeItem({ foc: true, description: 'Freebie' })] })] })],
+      sections: [makeSection({ areas: [makeArea({ items: [makeItem({ foc: true, selling: 50, description: 'Freebie' })] })] })],
     })
     const rows = buildExcelRows(makeParams({ quote }))
     const itemRow = rows.find((row) => row[1] === 'Freebie')
-    expect(itemRow?.[4]).toBe('FOC')
+    expect(itemRow?.[4]).toBe(50)
+    expect(itemRow?.[5]).toBe('FOC')
   })
 
   it('renders normal item amounts as numbers (qty × selling)', () => {
@@ -84,7 +90,8 @@ describe('buildExcelRows', () => {
     })
     const rows = buildExcelRows(makeParams({ quote }))
     const itemRow = rows.find((row) => row[1] === 'Wardrobe')
-    expect(itemRow?.[4]).toBe(300)
+    expect(itemRow?.[4]).toBe(150)
+    expect(itemRow?.[5]).toBe(300)
   })
 
   it('shows a placeholder row when nothing is included in the summary', () => {
@@ -98,14 +105,14 @@ describe('buildExcelRows', () => {
       sections: [makeSection({ areas: [makeArea({ items: [makeItem({ qty: 1, selling: 1000 })] })] })],
     })
     const rows = buildExcelRows(makeParams({ quote }))
-    expect(rows).toContainEqual(['', '', '', 'Sub Total', 1000])
-    const gstRow = rows.find((row) => row[3] === 'GST 9%')
-    expect(gstRow?.[4]).toBeCloseTo(90, 10)
-    const grandRow = rows.find((row) => row[3] === 'Grand Total')
-    expect(grandRow?.[4]).toBeCloseTo(1090, 10)
+    expect(rows).toContainEqual(['', '', '', '', 'Sub Total', 1000])
+    const gstRow = rows.find((row) => row[4] === 'GST 9%')
+    expect(gstRow?.[5]).toBeCloseTo(90, 10)
+    const grandRow = rows.find((row) => row[4] === 'Grand Total')
+    expect(grandRow?.[5]).toBeCloseTo(1090, 10)
   })
 
-  it('computes payment-term amounts as grandTotal × percent, formatted to 2 decimals', () => {
+  it('computes payment-term amounts as grandTotal × percent, as numbers rounded to 2 decimals', () => {
     const quote = makeQuote({
       sections: [makeSection({ areas: [makeArea({ items: [makeItem({ qty: 1, selling: 1000 })] })] })],
     })
@@ -119,7 +126,7 @@ describe('buildExcelRows', () => {
       }),
     )
     // Grand total = 1000 × 1.09 = 1090, split 50/50.
-    expect(rows).toContainEqual([1, 'Deposit', 'S$545.00'])
-    expect(rows).toContainEqual([2, 'Completion', 'S$545.00'])
+    expect(rows).toContainEqual([1, 'Deposit', 545])
+    expect(rows).toContainEqual([2, 'Completion', 545])
   })
 })

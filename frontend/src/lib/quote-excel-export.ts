@@ -33,7 +33,6 @@ export function buildExcelRows({
   paymentTermsSchedule,
 }: ExportParams): (string | number)[][] {
   const summary = getQuoteSummary(quote, gstRate)
-  const money = (value: number) => `${currencySymbol}${value.toFixed(2)}`
 
   const rows: (string | number)[][] = []
 
@@ -42,7 +41,7 @@ export function buildExcelRows({
   rows.push([`REF: ${quote.info.refNumber}`, '', `Date: ${quote.info.date}`])
   rows.push([])
 
-  rows.push(['No.', 'Description', 'Qty', 'Unit', 'Amount'])
+  rows.push(['No.', 'Description', 'Qty', 'Unit', `Unit Price (${currencySymbol})`, `Amount (${currencySymbol})`])
 
   if (summary.sections.length === 0) {
     rows.push(['No items included yet.'])
@@ -59,6 +58,7 @@ export function buildExcelRows({
             item.description,
             item.qty,
             item.unit,
+            item.selling,
             item.foc ? 'FOC' : itemTotal(item),
           ])
         })
@@ -67,14 +67,14 @@ export function buildExcelRows({
   }
 
   rows.push([])
-  rows.push(['', '', '', 'Sub Total', summary.subTotal])
-  rows.push(['', '', '', `GST ${(gstRate * 100).toFixed(0)}%`, summary.gst])
-  rows.push(['', '', '', 'Grand Total', summary.grandTotal])
+  rows.push(['', '', '', '', 'Sub Total', summary.subTotal])
+  rows.push(['', '', '', '', `GST ${(gstRate * 100).toFixed(0)}%`, summary.gst])
+  rows.push(['', '', '', '', 'Grand Total', summary.grandTotal])
   rows.push([])
 
-  rows.push(['No.', 'Payment Terms & Schedule', 'Amount'])
+  rows.push(['No.', 'Payment Terms & Schedule', `Amount (${currencySymbol})`])
   paymentTermsSchedule.forEach((term, index) => {
-    rows.push([index + 1, term.label, money(summary.grandTotal * term.percent)])
+    rows.push([index + 1, term.label, Number((summary.grandTotal * term.percent).toFixed(2))])
   })
 
   return rows
@@ -84,7 +84,16 @@ export function exportQuoteToExcel(params: ExportParams) {
   const rows = buildExcelRows(params)
 
   const worksheet = XLSX.utils.aoa_to_sheet(rows)
-  worksheet['!cols'] = [{ wch: 10 }, { wch: 40 }, { wch: 10 }, { wch: 12 }, { wch: 14 }]
+  const unitPriceHeader = `Unit Price (${params.currencySymbol})`
+  const amountHeader = `Amount (${params.currencySymbol})`
+  worksheet['!cols'] = [
+    { wch: 10 },
+    { wch: 40 },
+    { wch: 8 },
+    { wch: 10 },
+    { wch: Math.max(14, unitPriceHeader.length + 2) },
+    { wch: Math.max(14, amountHeader.length + 2) },
+  ]
 
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Quote')
