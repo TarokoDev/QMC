@@ -105,7 +105,8 @@ The frontend talks to Supabase for **authentication only** — it never uses Sup
 ```mermaid
 flowchart TD
     App["App.tsx"] --> AP["AuthProvider"]
-    AP -->|"no session"| L["/login"]
+    AP -->|"no session"| L["/login<br/><i>all other paths redirect here</i>"]
+    AP -->|"session + demo reset running"| DR["blocking overlay<br/><i>authed tree stays unmounted</i>"]
     AP -->|"session"| SP["SettingsProvider<br/><i>blocks until loaded</i>"]
     SP --> CLP["CategoryLibraryProvider<br/><i>preloads folders + categories</i>"]
     CLP --> AL["AppLayout<br/><i>header + &lt;Outlet /&gt;</i>"]
@@ -124,6 +125,8 @@ flowchart TD
 ```
 
 The provider nesting order matters: auth gates everything, settings must finish loading before any page renders (pages read `gstRate` and `currencySymbol` from it), and the category library preloads folder/category data needed for breadcrumbs everywhere.
+
+Two things about the signed-out branch are deliberate. Signed-out visitors are **redirected to `/login`** rather than shown the form at their current URL, so signing in always lands on the dashboard instead of resuming a deep route that may no longer exist. And the demo playground's reset — which needs a session to authenticate, but where the session going live is also what mounts the authed tree — raises a `demoResetting` flag in `AuthProvider` that renders a blocking overlay *instead of* the authed routes, so no preload or autosave can hit rows the reset is midway through deleting.
 
 ### Data layer — the one pattern to know
 
@@ -168,7 +171,7 @@ flowchart TD
 
 The key difference: **`CategoryEditor`'s revisions are a drafting convenience that vanish on reload; `ClientEditor`'s are real database rows.** Only `ClientEditor` persists a revision when you click `+`.
 
-Edits autosave on a **500ms debounce**, and saves replace the whole `sections` tree rather than diffing — simple and correct for a low-frequency autosave.
+Edits autosave on a **500ms debounce**, and saves replace the whole `sections` tree rather than diffing — simple and correct for a low-frequency autosave. Because the debounce effect keys off the quote's state, it must be gated on a **dirty flag** set only by the change handlers; otherwise it also fires on first load and on every revision-chip switch, rewriting the entire tree server-side for content nobody edited.
 
 `ClientEditor` has one subtlety worth knowing: client name/email/contact are stored per-revision on the quote, but are **overwritten from the live `Client` record** every time a revision loads, so old revisions never show stale contact details. On the latest revision those fields are editable and write to both places.
 

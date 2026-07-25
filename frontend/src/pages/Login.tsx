@@ -3,14 +3,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
-import { resetDemoPlayground } from '@/lib/demo-service'
 import { AppFooter } from '@/components/layout/AppFooter'
 
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined
 const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined
 
 export function Login() {
-  const { signIn } = useAuth()
+  const { signIn, signInDemo } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -33,15 +32,11 @@ export function Login() {
     }
     setDemoSubmitting(true)
     setError(null)
-    const { error } = await signIn(DEMO_EMAIL, DEMO_PASSWORD)
-    if (error) {
-      setDemoSubmitting(false)
-      setError(error)
-      return
-    }
-    // Always start from a clean playground, regardless of how the last demo session ended.
-    await resetDemoPlayground()
+    // Always start from a clean playground, regardless of how the last demo
+    // session ended — signInDemo keeps the app gated until the reset lands.
+    const { error } = await signInDemo(DEMO_EMAIL, DEMO_PASSWORD)
     setDemoSubmitting(false)
+    if (error) setError(error)
   }
 
   return (

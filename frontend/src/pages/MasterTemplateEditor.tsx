@@ -34,13 +34,26 @@ function MasterTemplateEditorInner({
   const [quote, setQuote] = useState(initialQuote)
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt)
 
+  // Without the dirty guard the debounce fires on mount, rewriting the whole
+  // template (and bumping "Last Updated") just for opening the page.
+  const dirtyRef = useRef(false)
+
   const saveRef = useRef(masterTemplateService.updateMasterTemplateQuote)
   useEffect(() => {
+    if (!dirtyRef.current) return
     const timeout = setTimeout(() => {
-      saveRef.current(quote).then((saved) => setUpdatedAt(saved.updatedAt))
+      dirtyRef.current = false
+      saveRef.current(quote)
+        .then((saved) => setUpdatedAt(saved.updatedAt))
+        .catch((err) => console.error('Saving the master template failed:', err))
     }, 500)
     return () => clearTimeout(timeout)
   }, [quote])
+
+  function handleQuoteChange(next: Quote) {
+    dirtyRef.current = true
+    setQuote(next)
+  }
 
   return (
     <QuoteEditorLayout
@@ -54,7 +67,7 @@ function MasterTemplateEditorInner({
         <span className="text-sm text-muted-foreground">Last Updated: {formatSGDateTime(updatedAt)}</span>
       }
       quote={quote}
-      onQuoteChange={setQuote}
+      onQuoteChange={handleQuoteChange}
     />
   )
 }

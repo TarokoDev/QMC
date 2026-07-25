@@ -47,14 +47,21 @@ function CategoryEditorInner({
   const onQuoteChangeRef = useRef(onQuoteChange)
   onQuoteChangeRef.current = onQuoteChange
 
+  // Only persist revisions the user actually edited — otherwise merely opening
+  // the editor (or switching revision chips) rewrites the category's sections.
+  const dirtyRevisionIdRef = useRef<string | null>(null)
+
   useEffect(() => {
+    if (dirtyRevisionIdRef.current !== activeRevisionId) return
     const timeout = setTimeout(() => {
+      dirtyRevisionIdRef.current = null
       onQuoteChangeRef.current(activeRevision.quote)
     }, 500)
     return () => clearTimeout(timeout)
-  }, [activeRevision.quote])
+  }, [activeRevisionId, activeRevision.quote])
 
   function handleQuoteChange(quote: Quote) {
+    dirtyRevisionIdRef.current = activeRevisionId
     setRevisions((prev) => prev.map((revision) => (revision.id === activeRevisionId ? { ...revision, quote } : revision)))
   }
 

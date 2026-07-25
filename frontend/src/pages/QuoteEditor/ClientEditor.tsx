@@ -57,30 +57,46 @@ export function ClientEditor() {
 
   const activeQuote = quotes[activeRevisionId]
 
+  // Which revision has unsaved edits. Without this the debounce fires on every
+  // load and revision switch, rewriting the whole section tree server-side for
+  // quotes nobody touched.
+  const dirtyRevisionIdRef = useRef<string | null>(null)
+
   const onSaveRef = useRef(revisionService.updateRevisionQuote)
   useEffect(() => {
     if (!activeQuote || !activeRevisionId) return
+    if (dirtyRevisionIdRef.current !== activeRevisionId) return
     const timeout = setTimeout(() => {
-      onSaveRef.current(activeRevisionId, activeQuote)
+      dirtyRevisionIdRef.current = null
+      onSaveRef.current(activeRevisionId, activeQuote).catch((err) => {
+        console.error('Saving the quote failed:', err)
+      })
     }, 500)
     return () => clearTimeout(timeout)
   }, [activeRevisionId, activeQuote])
 
   function handleQuoteChange(quote: Quote) {
+    dirtyRevisionIdRef.current = activeRevisionId
     setQuotes((prev) => ({ ...prev, [activeRevisionId]: quote }))
   }
 
+  const clientDirtyRef = useRef(false)
   const clientSaveRef = useRef(clientService.updateClient)
   useEffect(() => {
-    if (!client) return
+    if (!client || !clientDirtyRef.current) return
     const timeout = setTimeout(() => {
-      clientSaveRef.current(client.id, client.name, client.email, client.contactNumber)
+      clientDirtyRef.current = false
+      clientSaveRef.current(client.id, client.name, client.email, client.contactNumber).catch((err) => {
+        console.error('Saving the client failed:', err)
+      })
     }, 500)
     return () => clearTimeout(timeout)
   }, [client])
 
   function handleClientFieldChange(field: 'clientName' | 'email' | 'contact', value: string) {
     if (!client) return
+    clientDirtyRef.current = true
+    dirtyRevisionIdRef.current = activeRevisionId
     const updatedClient: Client = {
       ...client,
       name: field === 'clientName' ? value : client.name,
@@ -93,6 +109,7 @@ export function ClientEditor() {
 
   async function handleUseMasterTemplate() {
     const master = await masterTemplateService.getMasterTemplate()
+    dirtyRevisionIdRef.current = activeRevisionId
     setQuotes((prev) => ({
       ...prev,
       [activeRevisionId]: { ...prev[activeRevisionId], sections: master.quote.sections },
@@ -100,6 +117,7 @@ export function ClientEditor() {
   }
 
   function handleResetTemplate() {
+    dirtyRevisionIdRef.current = activeRevisionId
     setQuotes((prev) => ({
       ...prev,
       [activeRevisionId]: { ...prev[activeRevisionId], sections: [] },

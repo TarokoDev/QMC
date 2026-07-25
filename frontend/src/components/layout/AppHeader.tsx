@@ -36,7 +36,9 @@ export function AppHeader() {
     setResetting(true)
     try {
       await resetDemoPlayground()
-      window.location.reload()
+      // Full reload at the root, not reload() — the current route may point at
+      // a client/category the reset just deleted.
+      window.location.href = '/'
     } catch (err) {
       console.error('Demo reset failed:', err)
       setResetting(false)

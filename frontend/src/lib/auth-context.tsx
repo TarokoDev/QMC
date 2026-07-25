@@ -1,11 +1,14 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { resetDemoPlayground } from '@/lib/demo-service'
 import { supabase } from '@/lib/supabase-client'
 
 interface AuthValue {
   session: Session | null
   loading: boolean
+  demoResetting: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signInDemo: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   changePassword: (newPassword: string) => Promise<{ error: string | null }>
   updateProfile: (profile: { displayName: string; phoneNumber: string }) => Promise<{ error: string | null }>
@@ -16,6 +19,7 @@ const AuthContext = createContext<AuthValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [demoResetting, setDemoResetting] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -33,6 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
+  }
+
+  // The reset needs a session to authenticate, but the session going live is
+  // also what mounts the authed route tree — so the app would start fetching
+  // (and autosaving) against rows the reset is midway through deleting. The
+  // flag is raised before signing in so the gate is already up by the time the
+  // session lands, and callers keep rendering their own error state on failure.
+  async function signInDemo(email: string, password: string) {
+    setDemoResetting(true)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) return { error: error.message }
+      await resetDemoPlayground()
+      return { error: null }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Could not prepare the demo playground.' }
+    } finally {
+      setDemoResetting(false)
+    }
   }
 
   async function signOut() {
@@ -54,7 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signOut, changePassword, updateProfile }}>
+    <AuthContext.Provider
+      value={{ session, loading, demoResetting, signIn, signInDemo, signOut, changePassword, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   )

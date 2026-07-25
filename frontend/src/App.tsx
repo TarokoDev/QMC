@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { CategoryLibraryProvider } from '@/lib/category-library-context'
 import { SettingsProvider, useSettingsLoading } from '@/lib/settings-context'
@@ -38,18 +39,26 @@ function AuthedRoutes() {
 }
 
 function AppRoutes() {
-  const { session, loading } = useAuth()
+  const { session, loading, demoResetting } = useAuth()
 
   if (loading) {
     return <div className="flex h-svh items-center justify-center text-sm text-muted-foreground">Loading...</div>
   }
 
+  // Signed-out visitors are parked on /login rather than shown the form in
+  // place, so signing in lands on the dashboard instead of resuming whatever
+  // deep route the tab happened to be on (which may no longer exist).
   if (!session) {
     return (
       <Routes>
-        <Route path="*" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
+  }
+
+  if (demoResetting) {
+    return <LoadingOverlay message="Preparing demo playground…" />
   }
 
   return (
