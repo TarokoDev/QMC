@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAuth, useCurrentUser, useIsDemoUser } from '@/lib/auth-context'
 import { resetDemoPlayground } from '@/lib/demo-service'
@@ -34,6 +35,7 @@ export function AppHeader() {
         Quote Management System
       </Link>
       <div className="flex items-center gap-3">
+        {isDemoUser && <Badge variant="secondary">Demo Mode</Badge>}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
             <button type="button" className="flex items-center gap-3">
