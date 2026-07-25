@@ -40,46 +40,48 @@ export function Login() {
   }
 
   return (
-    <div className="flex h-svh items-center justify-center">
-      <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border p-8">
-        <div className="mx-auto flex w-fit flex-col items-center gap-3">
-          <img src="/logo.png" alt="" className="aspect-square w-full rounded-xl" />
-          <h1 className="whitespace-nowrap font-heading text-xl font-semibold">Quote Management System</h1>
-        </div>
+    <div className="flex h-svh flex-col">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
+        <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border p-8">
+          <div className="mx-auto flex w-fit flex-col items-center gap-3">
+            <img src="/logo.png" alt="" className="aspect-square w-full rounded-xl" />
+            <h1 className="whitespace-nowrap font-heading text-xl font-semibold">Quote Management System</h1>
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="login-email">Email</Label>
-          <Input
-            id="login-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoFocus
-            required
-          />
-        </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="login-email">Email</Label>
+            <Input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="login-password">Password</Label>
-          <Input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="login-password">Password</Label>
+            <Input
+              id="login-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button type="submit" disabled={submitting}>
-          Log In
-        </Button>
+          <Button type="submit" disabled={submitting}>
+            Log In
+          </Button>
 
-        <Button type="button" variant="outline" disabled={demoSubmitting} onClick={handleDemoLogin}>
-          {demoSubmitting ? 'Loading Demo...' : 'Use Demo Account'}
-        </Button>
-      </form>
+          <Button type="button" variant="outline" disabled={demoSubmitting} onClick={handleDemoLogin}>
+            {demoSubmitting ? 'Loading Demo...' : 'Use Demo Account'}
+          </Button>
+        </form>
+      </div>
       <AppFooter />
     </div>
   )

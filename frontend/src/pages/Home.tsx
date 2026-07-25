@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { Card, CardTitle } from '@/components/ui/card'
-import { AppFooter } from '@/components/layout/AppFooter'
 import { useIsDemoUser } from '@/lib/auth-context'
 
 export function Home() {
@@ -27,7 +26,6 @@ export function Home() {
           </Card>
         </Link>
       </div>
-      <AppFooter />
     </div>
   )
 }

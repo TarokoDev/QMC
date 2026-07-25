@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { AppFooter } from '@/components/layout/AppFooter'
 import { AppHeader } from '@/components/layout/AppHeader'
 
 export function AppLayout() {
@@ -23,6 +24,7 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <AppFooter />
     </div>
   )
 }
