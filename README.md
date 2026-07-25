@@ -82,9 +82,22 @@ QMC/
 │   │   └── seed.ts
 │   └── package.json
 ├── docs/
+│   ├── architecture.md # How frontend + backend fit together (diagrams)
+│   ├── testing.md      # Every test, what it protects, criticality ratings
 │   └── ui-ux/          # Wireframes (1.png – 7.png)
 └── CLAUDE.md           # Detailed project documentation for AI assistants
 ```
+
+---
+
+## Documentation
+
+| Document | What's in it |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | The domain model, request lifecycle, data layer pattern, and the two rules (derived numbering, three-tier gating) that explain most of the code. Start here if you're new. |
+| [`docs/testing.md`](docs/testing.md) | All 66 tests catalogued with examples, pass/fail output, and a High/Medium/Low criticality rating each. |
+| [`CLAUDE.md`](CLAUDE.md) | Working conventions and non-obvious constraints. |
+| API reference | [Below](#api-documentation) — all endpoints with JSON samples. |
 
 ---
 
