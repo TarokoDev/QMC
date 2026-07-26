@@ -1,7 +1,21 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { recordAuthEvent } from '@/lib/auth-event-service'
 import { resetDemoPlayground } from '@/lib/demo-service'
 import { supabase } from '@/lib/supabase-client'
+
+export const APP_ROLES = ['admin', 'designer', 'demo'] as const
+export type AppRole = (typeof APP_ROLES)[number]
+
+// The admin log is a convenience, never a gate: a failed write must not stop
+// anyone signing in or out.
+async function logAuthEvent(event: 'login' | 'logout') {
+  try {
+    await recordAuthEvent(event)
+  } catch (err) {
+    console.error(`Could not record ${event} event:`, err)
+  }
+}
 
 interface AuthValue {
   session: Session | null
@@ -34,8 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
+  // Login/logout are logged from these explicit calls rather than from
+  // `onAuthStateChange` — that also fires on token refresh and on restoring a
+  // stored session at page load, neither of which is a new sign-in.
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error) await logAuthEvent('login')
     return { error: error?.message ?? null }
   }
 
@@ -49,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) return { error: error.message }
+      await logAuthEvent('login')
       await resetDemoPlayground()
       return { error: null }
     } catch (err) {
@@ -58,7 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // The event has to be recorded first: after signOut() there is no access
+  // token left to authenticate the POST with.
   async function signOut() {
+    await logAuthEvent('logout')
     await supabase.auth.signOut()
   }
 
@@ -115,6 +137,23 @@ export function useCurrentUser(): CurrentUser {
   const name = (session.user.user_metadata?.display_name as string | undefined) ?? email
   const phoneNumber = (session.user.user_metadata?.phone_number as string | undefined) ?? ''
   return { name, initials: initialsFor(name), email, phoneNumber }
+}
+
+/**
+ * Role from the Supabase JWT's `app_metadata` claim (set via the Supabase
+ * dashboard or a service-role script — users cannot edit it themselves).
+ * Accounts predating the role system carry no claim and fall back to
+ * `designer`, which is the permission set everyone already had. Matches the
+ * backend default in `backend/src/require-auth.ts`.
+ */
+export function useAppRole(): AppRole {
+  const { session } = useAuth()
+  const claimed = session?.user.app_metadata?.role as AppRole | undefined
+  return claimed && APP_ROLES.includes(claimed) ? claimed : 'designer'
+}
+
+export function useIsAdmin(): boolean {
+  return useAppRole() === 'admin'
 }
 
 /** True when signed in as the shared demo playground account (see Login.tsx "Use Demo Account"). */

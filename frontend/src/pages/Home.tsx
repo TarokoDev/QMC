@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Card, CardTitle } from '@/components/ui/card'
-import { useIsDemoUser } from '@/lib/auth-context'
+import { useIsAdmin, useIsDemoUser } from '@/lib/auth-context'
 
 export function Home() {
   const isDemoUser = useIsDemoUser()
+  const isAdmin = useIsAdmin()
 
   return (
     <div className="flex h-full flex-col items-center gap-6 overflow-y-auto pt-16">
@@ -25,6 +26,13 @@ export function Home() {
             <CardTitle className="px-4 text-base font-medium">Master Template</CardTitle>
           </Card>
         </Link>
+        {isAdmin && (
+          <Link to="/admin">
+            <Card className="flex h-40 w-40 items-center justify-center text-center hover:bg-muted/50">
+              <CardTitle className="px-4 text-base font-medium">Admin Dashboard</CardTitle>
+            </Card>
+          </Link>
+        )}
       </div>
     </div>
   )

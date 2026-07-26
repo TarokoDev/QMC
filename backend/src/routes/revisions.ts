@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { prisma } from '../db.js'
+import { clientOwnedBy, revisionOwnedBy } from '../owner-scope.js'
 import { revisionInclude, toRevisionDTO } from '../quote-mapper.js'
 import { putQuoteBodySchema } from '../schemas.js'
 
@@ -14,7 +15,7 @@ revisionsRouter.post(
   asyncHandler(async (req, res) => {
     const sourceId = typeof req.body?.cloneFromRevisionId === 'string' ? req.body.cloneFromRevisionId : undefined
 
-    const ownedByRequester = { client: { category: { folder: { ownerId: req.authUserId } } } }
+    const ownedByRequester = revisionOwnedBy(req.authUserId)
 
     const source = sourceId
       ? await prisma.revision.findFirst({ where: { id: sourceId, ...ownedByRequester }, include: revisionInclude })
@@ -26,7 +27,7 @@ revisionsRouter.post(
     if (!source) return res.status(404).json({ error: 'No revision to clone from' })
 
     const client = await prisma.client.findFirst({
-      where: { id: req.params.clientId, category: { folder: { ownerId: req.authUserId } } },
+      where: { id: req.params.clientId, ...clientOwnedBy(req.authUserId) },
     })
     if (!client) return res.status(404).json({ error: 'Client not found' })
 
@@ -64,7 +65,7 @@ revisionsRouter.get(
   '/revisions/:id',
   asyncHandler(async (req, res) => {
     const revision = await prisma.revision.findFirst({
-      where: { id: req.params.id, client: { category: { folder: { ownerId: req.authUserId } } } },
+      where: { id: req.params.id, ...revisionOwnedBy(req.authUserId) },
       include: revisionInclude,
     })
     if (!revision) return res.status(404).json({ error: 'Revision not found' })
@@ -78,7 +79,7 @@ revisionsRouter.delete(
   '/revisions/:id',
   asyncHandler(async (req, res) => {
     const revision = await prisma.revision.findFirst({
-      where: { id: req.params.id, client: { category: { folder: { ownerId: req.authUserId } } } },
+      where: { id: req.params.id, ...revisionOwnedBy(req.authUserId) },
     })
     if (!revision) return res.status(404).json({ error: 'Revision not found' })
     if (revision.position === 0) return res.status(400).json({ error: 'Cannot delete R0' })
@@ -100,7 +101,7 @@ revisionsRouter.put(
     const body = putQuoteBodySchema.parse(req.body)
 
     const revision = await prisma.revision.findFirst({
-      where: { id: req.params.id, client: { category: { folder: { ownerId: req.authUserId } } } },
+      where: { id: req.params.id, ...revisionOwnedBy(req.authUserId) },
       select: { quote: { select: { id: true } } },
     })
     if (!revision?.quote) return res.status(404).json({ error: 'Revision or quote not found' })

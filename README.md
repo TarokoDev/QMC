@@ -230,6 +230,7 @@ npm run dev                # starts Vite on http://localhost:5173
 - 📑 **Excel export** — client-side `.xlsx` generation via `xlsx` library
 - 🔐 **Supabase Auth** — asymmetric JWT (ES256), per-user data scoping via `ownerId`
 - 👥 **Multi-user support** — folder/template ownership scoped by Supabase Auth UID
+- 🛡️ **Roles & admin dashboard** — `admin` / `designer` / `demo` roles from the Supabase `app_metadata.role` claim; admins get `/admin` with a user directory, per-user metrics (sign-ins, portfolio, output, quoted value), a sign-in activity log, and a read-only drill-down into any user's quotes
 - 🎮 **Demo playground account** — "Use Demo Account" on the login page seeds realistic sample data and self-resets on login/logout, for demoing without touching real data (see API docs below)
 
 ---
@@ -246,7 +247,40 @@ All `/api/*` routes require a valid Supabase JWT in the `Authorization` header:
 Authorization: Bearer <supabase-access-token>
 ```
 
-The backend verifies the token using Supabase's JWKS (ES256 asymmetric keys). On success, `req.authUserId` is set to the Supabase auth UID for per-user data scoping.
+The backend verifies the token using Supabase's JWKS (ES256 asymmetric keys). On success, `req.authUserId` is set to the Supabase auth UID for per-user data scoping, along with `req.authEmail` and `req.authRole`.
+
+### Roles
+
+`req.authRole` comes from the token's `app_metadata.role` claim — one of `admin`, `designer`, `demo`, defaulting to `designer` when the claim is absent.
+
+Assign roles with the script in `backend/` (needs `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env`):
+
+```bash
+npm run roles                                # list every user and their current role
+npm run roles -- austin@example.com admin
+npm run roles -- kim@example.com designer
+npm run roles -- demo@example.com demo
+```
+
+The user must **sign out and back in** for a new role to reach their token. The same edit can be made by hand in the Supabase dashboard (Auth → user → App Metadata).
+
+`/api/admin/*` requires `admin` and returns `403 { "error": "Forbidden" }` otherwise. No other route is role-gated.
+
+| Method | Endpoint | Role | Description |
+| ------ | -------- | ---- | ----------- |
+| POST | `/api/auth-events` | any | Records the caller's own `login`/`logout`. The actor is taken from the JWT, never the body. |
+| GET | `/api/admin/users` | admin | Every Supabase account with its role, last seen, and login/logout counts. `?refresh=1` bypasses the 60s cache. |
+| GET | `/api/admin/auth-events` | admin | Paged sign-in log (`limit`, `cursor`, `authUserId`, `event`, `from`, `to`), newest first. |
+| GET | `/api/admin/metrics` | admin | Project-wide metrics, or one user's with `?authUserId=`. Accepts `from`/`to` (default: last 30 days). |
+| GET | `/api/admin/users/:userId/folders` | admin | Read-only drill-down into another user's tree. |
+| GET | `/api/admin/users/:userId/folders/:folderId/categories` | admin | ” |
+| GET | `/api/admin/users/:userId/categories/:categoryId/clients` | admin | ” |
+| GET | `/api/admin/users/:userId/clients/:clientId/revisions` | admin | ” |
+| GET | `/api/admin/users/:userId/revisions/:id` | admin | ” — the full quote. |
+
+The drill-down is **GET-only**. No write route anywhere accepts another user's id, so an admin can read a designer's work but cannot alter it. Every handler filters on `:userId`, so pairing one user's id with another's row id returns 404 rather than data.
+
+`GET /api/admin/users` needs `SUPABASE_SERVICE_ROLE_KEY` in the server environment (see below); without it that one endpoint answers 503 and the rest of the dashboard still works.
 
 **Unauthenticated requests** receive:
 

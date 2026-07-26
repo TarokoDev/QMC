@@ -3,6 +3,7 @@ import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { todaySGDateString } from '../date-utils.js'
 import { prisma } from '../db.js'
+import { categoryOwnedBy, clientOwnedBy, revisionOwnedBy } from '../owner-scope.js'
 import {
   BLANK_QUOTE,
   masterTemplateInclude,
@@ -18,7 +19,7 @@ clientsRouter.get(
   '/categories/:categoryId/clients',
   asyncHandler(async (req, res) => {
     const clients = await prisma.client.findMany({
-      where: { categoryId: req.params.categoryId, category: { folder: { ownerId: req.authUserId } } },
+      where: { categoryId: req.params.categoryId, ...clientOwnedBy(req.authUserId) },
       orderBy: { createdAt: 'asc' },
     })
     res.json(clients.map(toClientDTO))
@@ -32,7 +33,7 @@ clientsRouter.post(
   asyncHandler(async (req, res) => {
     const body = clientBodySchema.parse(req.body)
     const category = await prisma.category.findFirst({
-      where: { id: req.params.categoryId, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.categoryId, ...categoryOwnedBy(req.authUserId) },
       select: { id: true },
     })
     if (!category) return res.status(404).json({ error: 'Category not found' })
@@ -87,7 +88,7 @@ clientsRouter.get(
   '/clients/:id',
   asyncHandler(async (req, res) => {
     const client = await prisma.client.findFirst({
-      where: { id: req.params.id, category: { folder: { ownerId: req.authUserId } } },
+      where: { id: req.params.id, ...clientOwnedBy(req.authUserId) },
     })
     if (!client) return res.status(404).json({ error: 'Client not found' })
     res.json(toClientDTO(client))
@@ -99,7 +100,7 @@ clientsRouter.patch(
   asyncHandler(async (req, res) => {
     const body = clientBodySchema.parse(req.body)
     const { count } = await prisma.client.updateMany({
-      where: { id: req.params.id, category: { folder: { ownerId: req.authUserId } } },
+      where: { id: req.params.id, ...clientOwnedBy(req.authUserId) },
       data: { name: body.name, email: body.email, contactNumber: body.contactNumber },
     })
     if (count === 0) return res.status(404).json({ error: 'Client not found' })
@@ -113,7 +114,7 @@ clientsRouter.delete(
   '/clients/:id',
   asyncHandler(async (req, res) => {
     const { count } = await prisma.client.deleteMany({
-      where: { id: req.params.id, category: { folder: { ownerId: req.authUserId } } },
+      where: { id: req.params.id, ...clientOwnedBy(req.authUserId) },
     })
     if (count === 0) return res.status(404).json({ error: 'Client not found' })
     res.status(204).end()
@@ -124,7 +125,7 @@ clientsRouter.get(
   '/clients/:id/revisions',
   asyncHandler(async (req, res) => {
     const revisions = await prisma.revision.findMany({
-      where: { clientId: req.params.id, client: { category: { folder: { ownerId: req.authUserId } } } },
+      where: { clientId: req.params.id, ...revisionOwnedBy(req.authUserId) },
       orderBy: { position: 'asc' },
     })
     res.json(revisions.map(toRevisionSummaryDTO))

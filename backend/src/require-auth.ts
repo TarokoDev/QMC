@@ -1,12 +1,25 @@
 import type { NextFunction, Request, Response } from 'express'
-import { createRemoteJWKSet, jwtVerify } from 'jose'
+import { type JWTPayload, createRemoteJWKSet, jwtVerify } from 'jose'
 
 declare global {
   namespace Express {
     interface Request {
       authUserId: string
+      authEmail: string
+      authRole: AppRole
     }
   }
+}
+
+export const APP_ROLES = ['admin', 'designer', 'demo'] as const
+export type AppRole = (typeof APP_ROLES)[number]
+
+/// Roles live in Supabase `app_metadata` (a signed JWT claim users cannot edit,
+/// unlike `user_metadata`). Accounts predating the role system carry no claim,
+/// so they fall back to `designer` — the permissions everyone had before.
+function roleFrom(payload: JWTPayload): AppRole {
+  const claimed = (payload.app_metadata as { role?: unknown } | undefined)?.role
+  return APP_ROLES.includes(claimed as AppRole) ? (claimed as AppRole) : 'designer'
 }
 
 const supabaseUrl = process.env.SUPABASE_URL
@@ -24,6 +37,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   try {
     const { payload } = await jwtVerify(token, jwks)
     req.authUserId = payload.sub as string
+    req.authEmail = (payload.email as string | undefined) ?? ''
+    req.authRole = roleFrom(payload)
     next()
   } catch (err) {
     // Distinguish "this token is bad" from "we couldn't reach the JWKS to check".

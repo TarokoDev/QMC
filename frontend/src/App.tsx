@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
-import { AuthProvider, useAuth } from '@/lib/auth-context'
+import { AuthProvider, useAuth, useIsAdmin } from '@/lib/auth-context'
 import { CategoryLibraryProvider } from '@/lib/category-library-context'
 import { SettingsProvider, useSettingsLoading } from '@/lib/settings-context'
+import { AdminDashboard } from '@/pages/Admin/AdminDashboard'
+import { AdminUserDetail } from '@/pages/Admin/AdminUserDetail'
 import { CategoryList } from '@/pages/CategoryList'
 import { ClientList } from '@/pages/ClientList'
 import { Folders } from '@/pages/Folders'
@@ -13,6 +15,12 @@ import { MasterTemplateEditor } from '@/pages/MasterTemplateEditor'
 import { ProfileSettings } from '@/pages/ProfileSettings'
 import { CategoryEditor } from '@/pages/QuoteEditor/CategoryEditor'
 import { ClientEditor } from '@/pages/QuoteEditor/ClientEditor'
+
+// UX only — it keeps non-admins from landing on a page that would just error.
+// The real boundary is `requireAdmin` on the backend's /api/admin router.
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  return useIsAdmin() ? children : <Navigate to="/" replace />
+}
 
 function AuthedRoutes() {
   const settingsLoading = useSettingsLoading()
@@ -33,6 +41,22 @@ function AuthedRoutes() {
         <Route path="/quotes/edit/client/:clientId" element={<ClientEditor />} />
         <Route path="/master-template" element={<MasterTemplateEditor />} />
         <Route path="/profile" element={<ProfileSettings />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <AdminDashboard />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/users/:userId"
+          element={
+            <RequireAdmin>
+              <AdminUserDetail />
+            </RequireAdmin>
+          }
+        />
       </Route>
     </Routes>
   )

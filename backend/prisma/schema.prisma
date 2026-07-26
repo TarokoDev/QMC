@@ -149,6 +149,30 @@ model LineItem {
   @@map("line_items")
 }
 
+/// Append-only record of explicit sign-ins and sign-outs, shown in the admin
+/// dashboard. `email` and `role` are snapshots taken at event time: there is no
+/// user table in this DB to join against, and a later role change must not
+/// rewrite history.
+///
+/// Logout rows only exist for explicit sign-outs — a closed tab or an expired
+/// refresh token leaves no trace, so this is not a session-lifetime log.
+model AuthEvent {
+  id         String   @id @default(uuid())
+  /// Supabase auth UID (JWT `sub`), same identifier as Folder.ownerId.
+  authUserId String   @map("auth_user_id")
+  email      String
+  role       String
+  /// "login" | "logout"
+  event      String
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([authUserId, createdAt])
+  @@map("auth_events")
+}
+
 /// Single-row tenant settings — no multi-tenancy in this phase.
 model CompanySettings {
   id      String @id @default(uuid())

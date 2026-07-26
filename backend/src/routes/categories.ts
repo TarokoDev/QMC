@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { prisma } from '../db.js'
+import { categoryOwnedBy, folderOwnedBy } from '../owner-scope.js'
 import { categoryInclude, toCategoryDTO } from '../quote-mapper.js'
 import { categoryBodySchema, putQuoteBodySchema } from '../schemas.js'
 
@@ -11,7 +12,7 @@ categoriesRouter.get(
   '/folders/:folderId/categories',
   asyncHandler(async (req, res) => {
     const categories = await prisma.category.findMany({
-      where: { folderId: req.params.folderId, folder: { ownerId: req.authUserId } },
+      where: { folderId: req.params.folderId, ...categoryOwnedBy(req.authUserId) },
       include: categoryInclude,
       orderBy: { createdAt: 'asc' },
     })
@@ -23,7 +24,7 @@ categoriesRouter.post(
   '/folders/:folderId/categories',
   asyncHandler(async (req, res) => {
     const body = categoryBodySchema.parse(req.body)
-    const folder = await prisma.folder.findFirst({ where: { id: req.params.folderId, ownerId: req.authUserId } })
+    const folder = await prisma.folder.findFirst({ where: { id: req.params.folderId, ...folderOwnedBy(req.authUserId) } })
     if (!folder) return res.status(404).json({ error: 'Folder not found' })
 
     const category = await prisma.category.create({
@@ -43,7 +44,7 @@ categoriesRouter.get(
   '/categories/:id',
   asyncHandler(async (req, res) => {
     const category = await prisma.category.findFirst({
-      where: { id: req.params.id, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
       include: categoryInclude,
     })
     if (!category) return res.status(404).json({ error: 'Category not found' })
@@ -56,7 +57,7 @@ categoriesRouter.patch(
   asyncHandler(async (req, res) => {
     const body = categoryBodySchema.parse(req.body)
     const existing = await prisma.category.findFirst({
-      where: { id: req.params.id, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
     })
     if (!existing) return res.status(404).json({ error: 'Category not found' })
 
@@ -73,7 +74,7 @@ categoriesRouter.delete(
   '/categories/:id',
   asyncHandler(async (req, res) => {
     const { count } = await prisma.category.deleteMany({
-      where: { id: req.params.id, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
     })
     if (count === 0) return res.status(404).json({ error: 'Category not found' })
     res.status(204).end()
@@ -85,7 +86,7 @@ categoriesRouter.post(
   asyncHandler(async (req, res) => {
     const body = categoryBodySchema.parse(req.body)
     const source = await prisma.category.findFirst({
-      where: { id: req.params.id, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
       include: categoryInclude,
     })
     if (!source) return res.status(404).json({ error: 'Category not found' })
@@ -122,7 +123,7 @@ categoriesRouter.put(
     const body = putQuoteBodySchema.parse(req.body)
 
     const category = await prisma.category.findFirst({
-      where: { id: req.params.id, folder: { ownerId: req.authUserId } },
+      where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
       select: { quote: { select: { id: true } } },
     })
     if (!category?.quote) return res.status(404).json({ error: 'Category or quote not found' })

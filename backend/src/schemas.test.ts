@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { clientBodySchema, putQuoteBodySchema, quoteSchema } from './schemas.js'
+import {
+  adminMetricsQuerySchema,
+  authEventBodySchema,
+  authEventQuerySchema,
+  clientBodySchema,
+  putQuoteBodySchema,
+  quoteSchema,
+} from './schemas.js'
 import { makeItemDTO, makeQuoteDTO, makeSectionDTO, makeAreaDTO } from './test-utils/quote-builders.js'
 
 describe('quoteSchema', () => {
@@ -68,5 +75,61 @@ describe('clientBodySchema', () => {
 
   it('rejects an empty name', () => {
     expect(clientBodySchema.safeParse({ name: '' }).success).toBe(false)
+  })
+})
+
+describe('authEventBodySchema', () => {
+  it('accepts the two known event kinds', () => {
+    expect(authEventBodySchema.parse({ event: 'login' }).event).toBe('login')
+    expect(authEventBodySchema.parse({ event: 'logout' }).event).toBe('logout')
+  })
+
+  it('rejects an unknown event kind', () => {
+    expect(authEventBodySchema.safeParse({ event: 'impersonate' }).success).toBe(false)
+  })
+
+  // Identity comes from the verified JWT; anything the caller sends about who
+  // the event belongs to is stripped rather than trusted.
+  it('drops any actor fields supplied by the caller', () => {
+    const parsed = authEventBodySchema.parse({ event: 'login', authUserId: 'someone-else', role: 'admin' })
+    expect(parsed).toEqual({ event: 'login' })
+  })
+})
+
+describe('authEventQuerySchema', () => {
+  it('defaults limit to 50 and coerces the query string number', () => {
+    expect(authEventQuerySchema.parse({}).limit).toBe(50)
+    expect(authEventQuerySchema.parse({ limit: '25' }).limit).toBe(25)
+  })
+
+  it('rejects a limit above the 100 cap', () => {
+    expect(authEventQuerySchema.safeParse({ limit: '500' }).success).toBe(false)
+  })
+})
+
+describe('admin date ranges', () => {
+  it('defaults to the last 30 days when no range is given', () => {
+    const { from, to } = adminMetricsQuerySchema.parse({})
+    const days = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)
+    expect(Math.round(days)).toBe(30)
+  })
+
+  // An inverted range would return nothing, which reads as "this user did
+  // nothing" rather than "you typed the dates backwards".
+  it('rejects a range that ends before it starts', () => {
+    const inverted = { from: '2026-07-20T00:00:00.000Z', to: '2026-07-01T00:00:00.000Z' }
+    expect(adminMetricsQuerySchema.safeParse(inverted).success).toBe(false)
+    expect(authEventQuerySchema.safeParse(inverted).success).toBe(false)
+  })
+
+  it('keeps an explicit range as given', () => {
+    const parsed = adminMetricsQuerySchema.parse({ from: '2026-07-01T00:00:00.000Z', to: '2026-07-20T00:00:00.000Z' })
+    expect(parsed.from.toISOString()).toBe('2026-07-01T00:00:00.000Z')
+    expect(parsed.to.toISOString()).toBe('2026-07-20T00:00:00.000Z')
+  })
+
+  it('treats an absent authUserId as project-wide', () => {
+    expect(adminMetricsQuerySchema.parse({}).authUserId).toBeUndefined()
+    expect(adminMetricsQuerySchema.parse({ authUserId: 'uid-1' }).authUserId).toBe('uid-1')
   })
 })

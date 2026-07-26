@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "roles": "tsx --env-file=.env scripts/set-role.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

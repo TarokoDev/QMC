@@ -1,5 +1,10 @@
 import type { AreaOfWork, LineItem, Quote, QuoteSection } from '@/lib/mock-data'
 
+// `itemTotal` and the sub-total rule here are mirrored server-side in
+// `backend/src/quote-totals.ts` (the admin dashboard sums quote values across
+// many quotes at once). Change one, change both — `quote-totals.test.ts`
+// mirrors these cases so drift fails a test.
+
 export function formatMoney(value: number, currencySymbol: string) {
   return `${currencySymbol}${value.toLocaleString('en-SG', {
     minimumFractionDigits: 2,

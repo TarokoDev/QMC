@@ -305,7 +305,39 @@ This rule lives in `quote-calculations.ts` and is enforced by 27 tests — it is
 
 ## Auth
 
-Two Supabase Auth users exist per project (**kim hoe**, the real user, and **admin**, a dev sandbox), plus a **demo playground account** on the shared main/testing project. There is no role system — both users have identical permissions.
+Two Supabase Auth users exist per project (**kim hoe**, the real user, and **admin**, a dev sandbox), plus a **demo playground account** on the shared main/testing project.
+
+### Roles
+
+Three roles exist: `admin` (austin), `designer` (kim hoe), `demo` (the playground account). The role lives in the Supabase user's **`app_metadata.role`** claim — never set from the app, because `app_metadata` is the half of the token users cannot edit (`user_metadata`, which `updateProfile()` writes to, is). It rides inside the verified JWT, so no lookup is needed to authorize a request.
+
+Assignment is out-of-band via `backend/scripts/set-role.ts` (`npm run roles -- <email> <role>`), which calls the Supabase Admin API with the service-role key. That key bypasses row-level security, so it lives only in `backend/.env` and is never read by the server process — hence a script rather than an admin-only API route.
+
+An account with no claim falls back to **`designer`** on both sides (`backend/src/require-auth.ts`, `useAppRole()` in `auth-context.tsx`) — that is the permission set everyone had before roles existed, so nothing changes for existing users. **A role change only takes effect after the user signs out and back in**, since the claim is baked into the issued token.
+
+The role gates exactly one thing: the admin dashboard (`/admin` and `/api/admin/*`). Designer and demo permissions are unchanged; the demo account's destructive-reset guard is still the separate `DEMO_USER_ID` check in `routes/demo.ts`. Data isolation is still ownership-based, not role-based — an admin does **not** see another user's folders.
+
+### Admin dashboard
+
+`/admin` lists every Supabase account (from the Admin API, so accounts appear before their first sign-in), project-wide tiles, and a sign-in log. `/admin/users/:userId` adds per-user metrics — sign-ins, portfolio counts, output in range, and quoted value — plus a read-only walk through that user's folder → category → client → revision → quote tree.
+
+Three things carry the design:
+
+- **The drill-down is GET-only.** `/api/admin/users/:userId/...` has no write counterpart anywhere, so an admin viewing a designer's quote cannot alter it — the safety comes from the missing endpoint, not from disabled inputs. The UI side is `QuoteEditorLayout`'s `readOnly` prop, which also hides Add-Revision and Preview (the latter would stamp the *admin's* name on the owner's signature block).
+- **Ownership filters live in `backend/src/owner-scope.ts`.** Only `Folder` has `ownerId`; each level below adds a relation hop. Owner routes pass `req.authUserId`, admin read routes pass `:userId` — one definition, so a filter that is one hop short (and would match every row) cannot appear in only one of them.
+- **Quote value is computed in TypeScript**, in `backend/src/quote-totals.ts`, a deliberate mirror of `frontend/src/lib/quote-calculations.ts`. The complete → included → inc/foc gating is the most heavily tested rule in the codebase and re-expressing it in SQL would fork it; `quote-totals.test.ts` mirrors the frontend cases so drift fails a test. Value sums the latest revision per client, so a quote is never counted twice.
+
+`GET /api/admin/users` is the one part needing `SUPABASE_SERVICE_ROLE_KEY` in the server env — a key that bypasses RLS and can mint tokens, so it is read in one module, reachable only behind `requireAdmin`, and exposes five fields per user. If it is unset that endpoint 503s and the rest of the dashboard still renders.
+
+Worth stating plainly: an admin can now read every user's client names, contacts, and pricing. That is the intent of the feature, but it is a real change in who can see what.
+
+### Sign-in log
+
+`/admin` shows summary counts plus a login/logout log backed by the `auth_events` table. Rows are written by the frontend from the explicit `signIn`/`signInDemo`/`signOut` calls in `auth-context.tsx` — deliberately *not* from `onAuthStateChange`, which also fires on token refresh and on restoring a stored session at page load, neither of which is a new sign-in. The POST is fire-and-swallow: a failed log must never block signing in or out.
+
+The logout row is written **before** `supabase.auth.signOut()`, because afterwards there is no access token left to authenticate it.
+
+Known gap: only explicit sign-outs are recorded. A closed tab, an expired refresh token, or a session revoked server-side leaves no logout row — the log is "sign-in activity", not session lifetime. `email` and `role` are snapshotted onto each row because there is no local user table to join against and a later role change must not rewrite history.
 
 Isolation comes from **per-user data ownership**, not authorization tiers:
 

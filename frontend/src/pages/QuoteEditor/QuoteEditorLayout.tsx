@@ -40,6 +40,12 @@ interface Props {
   onClientFieldChange?: (field: 'clientName' | 'email' | 'contact', value: string) => void
   onResetTemplate?: () => void
   onUseMasterTemplate?: () => void
+  /**
+   * Forces the whole editor into view-only mode, on top of the existing
+   * "older revisions are frozen" rule. Used by the admin drill-down, where
+   * there is no write endpoint behind any of these controls at all.
+   */
+  readOnly?: boolean
 }
 
 export function QuoteEditorLayout({
@@ -57,6 +63,7 @@ export function QuoteEditorLayout({
   onClientFieldChange,
   onResetTemplate,
   onUseMasterTemplate,
+  readOnly = false,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('basic')
   const [tabRailCollapsed, setTabRailCollapsed] = useLocalStorageState('qms:tabRailCollapsed', false)
@@ -81,6 +88,8 @@ export function QuoteEditorLayout({
   const activeRevisionIndex = revisions.findIndex((revision) => revision.id === activeRevisionId)
   const activeRevisionLabel = revisions[activeRevisionIndex]?.label ?? ''
   const isLatestRevision = activeRevisionIndex === revisions.length - 1
+  // Only the latest revision was ever editable; `readOnly` freezes the rest too.
+  const fieldsReadOnly = readOnly || !isLatestRevision
 
   return (
     <div className="flex h-full flex-col">
@@ -129,7 +138,7 @@ export function QuoteEditorLayout({
                 revisions.map((revision, index) => {
                   const isLast = index === revisions.length - 1
                   const isActive = revision.id === activeRevisionId
-                  const canDelete = onDeleteRevision && index !== 0 && isLast
+                  const canDelete = !readOnly && onDeleteRevision && index !== 0 && isLast
                   return (
                     <div key={revision.id} className="flex items-center gap-0.5">
                       <button
@@ -168,7 +177,9 @@ export function QuoteEditorLayout({
                     </div>
                   )
                 })}
-              {!hideRevisions && (
+              {/* The one mutating control with no callback-shaped escape hatch,
+                  so `readOnly` has to hide it explicitly. */}
+              {!hideRevisions && !readOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -191,9 +202,13 @@ export function QuoteEditorLayout({
                   Use Master Template
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setShowPreview(true)}>
-                Preview Quote
-              </Button>
+              {/* Hidden in admin view: QuotePreview stamps the *viewer's* name on
+                  the signature block, which would be the admin, not the owner. */}
+              {!readOnly && (
+                <Button variant="outline" onClick={() => setShowPreview(true)}>
+                  Preview Quote
+                </Button>
+              )}
             </div>
           </div>
 
@@ -208,7 +223,7 @@ export function QuoteEditorLayout({
                 quote={quote}
                 onChange={onQuoteChange}
                 revisionLabel={activeRevisionLabel}
-                readOnly={!isLatestRevision}
+                readOnly={fieldsReadOnly}
                 onClientFieldChange={onClientFieldChange}
               />
             )}
@@ -219,7 +234,7 @@ export function QuoteEditorLayout({
                 activeSection={activeSection}
                 activeSectionId={activeSectionId}
                 onSelectSection={setActiveSectionId}
-                readOnly={!isLatestRevision}
+                readOnly={fieldsReadOnly}
               />
             )}
             {activeTab === 'summary' && <SummaryTab quote={quote} />}
