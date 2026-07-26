@@ -12,7 +12,7 @@ How the QMC frontend and backend fit together, for someone reading this codebase
 - [Auth](#auth)
 - [Where to make common changes](#where-to-make-common-changes)
 
-Related: [README](../README.md) for setup and full API reference · [testing.md](testing.md) for the test suite · [CLAUDE.md](../CLAUDE.md) for working conventions.
+Related: [README](../README.md) for setup and full API reference · [testing.md](testing.md) for the test suite.
 
 ---
 

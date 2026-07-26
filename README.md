@@ -9,6 +9,20 @@
 
 A full-stack quotation management system for interior design / renovation businesses. Create folders, organize categories of work, manage clients, build detailed line-item quotes with revision history, and export to PDF or Excel.
 
+## About this project
+
+I built this for a friend who works as an interior designer, to help him streamline his workflow and generate quotes much faster. Putting a quote together used to mean rebuilding the same line items by hand for every client — this turns that into picking a template, adjusting the numbers, and exporting a finished PDF or spreadsheet.
+
+### 🔗 Try it out
+
+**[kimchinc-qms-test.netlify.app](https://kimchinc-qms-test.netlify.app)**
+
+Click **"Use Demo Account"** on the login page — it loads a self-resetting playground with realistic sample data, so you can explore freely without affecting anything real.
+
+> **Note:** the live demo runs the `testing` branch and is currently undergoing **UAT (User Acceptance Testing)**. Features are still being reviewed and refined based on feedback, so expect some rough edges.
+>
+> The backend is hosted on a free tier that sleeps after inactivity — **the first request may take up to a minute** while the server wakes up. It's not broken, just slow to start.
+
 ---
 
 ## Screenshots
@@ -85,7 +99,7 @@ QMC/
 │   ├── architecture.md # How frontend + backend fit together (diagrams)
 │   ├── testing.md      # Every test, what it protects, criticality ratings
 │   └── ui-ux/          # Wireframes (1.png – 7.png)
-└── CLAUDE.md           # Detailed project documentation for AI assistants
+└── README.md           # You are here
 ```
 
 ---
@@ -96,7 +110,6 @@ QMC/
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | The domain model, request lifecycle, data layer pattern, and the two rules (derived numbering, three-tier gating) that explain most of the code. Start here if you're new. |
 | [`docs/testing.md`](docs/testing.md) | All 66 tests catalogued with examples, pass/fail output, and a High/Medium/Low criticality rating each. |
-| [`CLAUDE.md`](CLAUDE.md) | Working conventions and non-obvious constraints. |
 | API reference | [Below](#api-documentation) — all endpoints with JSON samples. |
 
 ---
@@ -135,7 +148,7 @@ QMC/
 
 - **Node.js** ≥ 18
 - **npm**
-- A **Supabase** project (see [`backend/SUPABASE_SETUP.md`](backend/SUPABASE_SETUP.md))
+- A **Supabase** project — for Postgres + Auth (connection strings go in `backend/.env`, see `backend/.env.example`)
 
 ### 1. Clone the repository
 
@@ -1204,7 +1217,7 @@ Get tenant-wide company settings and quote configuration. These are seeded, read
 
 Wipes and reseeds the demo playground account's data (a `Folder` with HDB "4-Room"/"5-Room" categories, one client each with 2 revisions of realistic line items, plus a matching Master Template) back to a fixed starting dataset. Guarded so it only ever runs against the demo account — every other user gets `403`.
 
-Called by the frontend's "Use Demo Account" login button, on demo-user logout, and via the "Reset Playground" menu item — see `CLAUDE.md` "Environments" for the full flow.
+Called by the frontend's "Use Demo Account" login button, on demo-user logout, and via the "Reset Playground" menu item.
 
 **Response `204`:** No content.
 
@@ -1312,7 +1325,7 @@ Read-only output (Summary tab, Preview/Print, Excel) shares one column contract:
 1. Create a feature branch from `main`
 2. Make changes
 3. Run `npm run build` in both `frontend/` and `backend/` to verify compilation
-4. Bump `frontend/package.json`'s `version` for user-facing changes — it's the only source for the footer's version number (see `CLAUDE.md` "Stack")
+4. Bump `frontend/package.json`'s `version` for user-facing changes — it's the only source for the footer's version number
 5. Push and open a PR targeting `testing` branch
 
 ---

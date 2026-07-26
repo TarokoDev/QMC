@@ -607,7 +607,7 @@ Add a builder default only when most tests need it; a default that only one test
 ❌ it('returns correct object')
 ```
 
-The name is what a failure prints, so it should say what broke in business terms. Cite CLAUDE.md in a comment when a rule is non-obvious.
+The name is what a failure prints, so it should say what broke in business terms. Add a comment citing the rule's source when it is non-obvious.
 
 **Floating point:** assert money with `toBeCloseTo(value, 10)`, never `toBe`, wherever GST or fractional quantities are involved.
 
