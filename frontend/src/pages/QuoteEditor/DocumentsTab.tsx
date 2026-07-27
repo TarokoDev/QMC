@@ -26,6 +26,7 @@ interface Props {
 
 interface InFlight {
   key: string
+  revisionId: string
   fileName: string
   progress: number
   error?: string
@@ -44,7 +45,6 @@ const MAX_CONCURRENT_UPLOADS = 3
  */
 export function DocumentsTab({ revisionId, readOnly, adminUserId }: Props) {
   const [documents, setDocuments] = useState<RevisionDocument[]>([])
-  const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [inFlight, setInFlight] = useState<InFlight[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
@@ -52,15 +52,33 @@ export function DocumentsTab({ revisionId, readOnly, adminUserId }: Props) {
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Which revision the rows in `documents` actually belong to.
+  //
+  // Switching revisions used to read "Loading…", then "No documents", then the
+  // real list: `loading` and `documents` were two independent flags, so any
+  // ordering between the outgoing and incoming load left a frame where the
+  // list was empty but nothing was marked as loading. Deriving the loading
+  // state from "the data on screen is not this revision's" makes that frame
+  // impossible to express, and stops one revision's files from appearing
+  // briefly under another's name.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const requestRef = useRef(0)
+
+  const loadKey = `${adminUserId ?? ''}:${revisionId}`
+  const loading = loadedFor !== loadKey && loadError === null
+
   const load = useCallback(async () => {
-    setLoading(true)
+    const request = ++requestRef.current
     setLoadError(null)
     try {
-      setDocuments(adminUserId ? await listUserDocuments(adminUserId, revisionId) : await listDocuments(revisionId))
+      const list = adminUserId ? await listUserDocuments(adminUserId, revisionId) : await listDocuments(revisionId)
+      // A slower earlier request must never overwrite a later one's answer.
+      if (requestRef.current !== request) return
+      setDocuments(list)
+      setLoadedFor(`${adminUserId ?? ''}:${revisionId}`)
     } catch (error) {
+      if (requestRef.current !== request) return
       setLoadError(error instanceof Error ? error.message : 'Something went wrong.')
-    } finally {
-      setLoading(false)
     }
   }, [adminUserId, revisionId])
 
@@ -69,12 +87,15 @@ export function DocumentsTab({ revisionId, readOnly, adminUserId }: Props) {
   }, [load])
 
   async function runUpload(file: File, key: string) {
-    setInFlight((current) => [...current, { key, fileName: file.name, progress: 0 }])
+    const target = revisionId
+    setInFlight((current) => [...current, { key, revisionId: target, fileName: file.name, progress: 0 }])
     try {
-      const uploaded = await uploadDocument(revisionId, file, (progress) => {
+      const uploaded = await uploadDocument(target, file, (progress) => {
         setInFlight((current) => current.map((row) => (row.key === key ? { ...row, progress } : row)))
       })
-      setDocuments((current) => [...current, uploaded])
+      // The upload belongs to the revision it started on; if the user has moved
+      // on, the list they are looking at is not the one to add it to.
+      setDocuments((current) => (target === revisionId ? [...current, uploaded] : current))
       setInFlight((current) => current.filter((row) => row.key !== key))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed.'
@@ -167,32 +188,34 @@ export function DocumentsTab({ revisionId, readOnly, adminUserId }: Props) {
 
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
-      {inFlight.map((row) => (
-        <div key={row.key} className="rounded-lg border px-3 py-2">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="truncate">{row.fileName}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {row.error ? 'Failed' : `${Math.round(row.progress * 100)}%`}
-            </span>
+      {inFlight
+        .filter((row) => row.revisionId === revisionId)
+        .map((row) => (
+          <div key={row.key} className="rounded-lg border px-3 py-2">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="truncate">{row.fileName}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {row.error ? 'Failed' : `${Math.round(row.progress * 100)}%`}
+              </span>
+            </div>
+            {row.error ? (
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <p className="text-xs text-destructive">{row.error}</p>
+                <button
+                  type="button"
+                  className="shrink-0 text-xs text-muted-foreground underline"
+                  onClick={() => setInFlight((current) => current.filter((item) => item.key !== row.key))}
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full bg-primary transition-all" style={{ width: `${row.progress * 100}%` }} />
+              </div>
+            )}
           </div>
-          {row.error ? (
-            <div className="mt-1 flex items-center justify-between gap-3">
-              <p className="text-xs text-destructive">{row.error}</p>
-              <button
-                type="button"
-                className="shrink-0 text-xs text-muted-foreground underline"
-                onClick={() => setInFlight((current) => current.filter((item) => item.key !== row.key))}
-              >
-                Dismiss
-              </button>
-            </div>
-          ) : (
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-all" style={{ width: `${row.progress * 100}%` }} />
-            </div>
-          )}
-        </div>
-      ))}
+        ))}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading documents…</p>
