@@ -36,6 +36,12 @@ interface Props {
   addRevisionDisabled?: boolean
   onDeleteRevision?: (id: string) => void
   hideRevisions?: boolean
+  /**
+   * Shows the logo upload controls on the Basic Information tab. Set only by
+   * the master template editor — the logo is one global setting shared by every
+   * quote, so it has a single place to change it.
+   */
+  canEditLogo?: boolean
   toolbarLeftExtra?: ReactNode
   quote: Quote
   onQuoteChange: (quote: Quote) => void
@@ -65,6 +71,7 @@ export function QuoteEditorLayout({
   addRevisionDisabled,
   onDeleteRevision,
   hideRevisions,
+  canEditLogo,
   toolbarLeftExtra,
   quote,
   onQuoteChange,
@@ -238,6 +245,7 @@ export function QuoteEditorLayout({
                 revisionLabel={activeRevisionLabel}
                 readOnly={fieldsReadOnly}
                 onClientFieldChange={onClientFieldChange}
+                canEditLogo={canEditLogo && !readOnly}
               />
             )}
             {activeTab === 'items' && (

@@ -296,6 +296,19 @@ Uploading and deleting require the latest revision, enforced with a 403 on the s
 
 One-time Supabase setup (see [README](../README.md#revision-documents-supabase-storage) for the SQL).
 
+### The company logo
+
+The logo shown on the Basic Information tab, the preview and the printed PDF is a base64 data URI on `company_settings.logo_data_url` — the one place in the app where image bytes live in Postgres rather than in Storage. Two reasons: it is a single small image for the whole deployment, and it has to be decoded *before* `window.print()` runs, which a remote `<img>` cannot promise (PDF export is the browser's print dialog, not a PDF library).
+
+The cap is 300 KB, enforced by `backend/src/company-logo.ts` and re-checked client-side. `frontend/src/lib/image-to-data-url.ts` downscales to fit 600×300 and re-encodes, trying PNG (to keep transparency), then WebP, then half size — so what reaches the API is nothing like the 4 MB file a user picked. SVG is rejected: it is markup, and this value is echoed into every user's page. `express.json()` is raised to a 1 MB limit for the same reason.
+
+Two consequences of the logo being **global**, unlike everything else, which is scoped by `owner_id`:
+
+1. The upload/change/delete controls exist only in the master template editor (`canEditLogo` on `QuoteEditorLayout`), so there is one obvious place to change it. Every other editor renders the same `CompanyLogoField` read-only.
+2. The demo role is blocked with a 403 on both writes. Demo data is sandboxed and reset on every login; a global row is not, so a demo upload would otherwise change the logo on every real user's quotes.
+
+Because it is global, the admin drill-down needs no special path — it already loads the same `/api/settings`.
+
 ---
 
 ## Two rules that explain most of the code

@@ -63,6 +63,7 @@ function MasterTemplateEditorInner({
       onSelectRevision={() => {}}
       onAddRevision={() => {}}
       hideRevisions
+      canEditLogo
       toolbarLeftExtra={
         <span className="text-sm text-muted-foreground">Last Updated: {formatSGDateTime(updatedAt)}</span>
       }

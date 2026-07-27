@@ -20,7 +20,9 @@ const app = express()
 app.set('trust proxy', 1)
 
 app.use(cors())
-app.use(express.json())
+// Above the 100 KB default: the company logo is sent as a base64 data URI,
+// which is ~4/3 of its 300 KB byte cap (see `company-logo.ts`).
+app.use(express.json({ limit: '1mb' }))
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

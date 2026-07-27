@@ -1,4 +1,5 @@
 import { CalendarIcon } from 'lucide-react'
+import { CompanyLogoField } from '@/components/CompanyLogoField'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,9 +17,18 @@ interface Props {
   revisionLabel: string
   readOnly?: boolean
   onClientFieldChange?: (field: 'clientName' | 'email' | 'contact', value: string) => void
+  /** The logo is one global setting, so it is only editable from the master template. */
+  canEditLogo?: boolean
 }
 
-export function BasicInformationTab({ quote, onChange, revisionLabel, readOnly, onClientFieldChange }: Props) {
+export function BasicInformationTab({
+  quote,
+  onChange,
+  revisionLabel,
+  readOnly,
+  onClientFieldChange,
+  canEditLogo,
+}: Props) {
   const { company } = useSettings()
 
   function updateInfo<K extends keyof Quote['info']>(key: K, value: Quote['info'][K]) {
@@ -33,9 +43,7 @@ export function BasicInformationTab({ quote, onChange, revisionLabel, readOnly, 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto">
       <div className="flex gap-4">
-        <div className="flex h-24 w-40 shrink-0 items-center justify-center rounded-lg border text-center text-sm text-muted-foreground">
-          Company Logo
-        </div>
+        <CompanyLogoField editable={canEditLogo} />
         <div className="text-sm leading-relaxed">
           <p className="font-medium">{company.name}</p>
           <p>Address: {company.address}</p>

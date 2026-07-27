@@ -217,6 +217,10 @@ model CompanySettings {
   uen     String
   gst     String
   website String
+  /// Base64 data URI, capped at 300 KB — see `company-logo.ts` for why the
+  /// bytes live here rather than in Supabase Storage. Null renders the
+  /// "Company Logo" placeholder.
+  logoDataUrl String? @map("logo_data_url")
 
   @@map("company_settings")
 }

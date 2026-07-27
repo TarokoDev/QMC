@@ -78,7 +78,11 @@ export function QuotePrintDocument({
         <tbody>
           <tr>
             <td className="w-40 border border-black px-2 py-1 text-center align-middle text-[10px] text-neutral-500">
-              Company Logo
+              {company.logoDataUrl ? (
+                <img src={company.logoDataUrl} alt="" className="mx-auto max-h-16 max-w-full object-contain" />
+              ) : (
+                'Company Logo'
+              )}
             </td>
             <td className="border border-black px-2 py-1 align-top">
               <p className="text-sm font-bold">{company.name}</p>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { parseLogoDataUrl } from './company-logo.js'
 import { MAX_DOCUMENT_BYTES } from './document-path.js'
 
 export const nameBodySchema = z.object({
@@ -124,4 +125,12 @@ export const createDocumentBodySchema = z.object({
   fileName: z.string().min(1).max(255),
   contentType: z.string().max(255).default('application/octet-stream'),
   sizeBytes: z.number().int().positive().max(MAX_DOCUMENT_BYTES),
+})
+
+/// The browser downscales and re-encodes before sending, so this is the real
+/// bound on what lands in the database, not just a fail-fast.
+export const companyLogoBodySchema = z.object({
+  dataUrl: z.string().refine((value) => parseLogoDataUrl(value) !== null, {
+    message: 'Expected a PNG, JPEG or WebP data URI within the size limit',
+  }),
 })

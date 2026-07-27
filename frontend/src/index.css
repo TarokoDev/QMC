@@ -153,6 +153,13 @@
     background: #fff !important;
   }
 
+  /* The block above forces black-on-white; without this the logo prints
+     washed out or dropped entirely. */
+  #quote-print-area img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   #quote-print-area thead {
     display: table-header-group;
   }

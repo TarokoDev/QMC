@@ -44,6 +44,8 @@ export interface CompanyInfo {
   uen: string
   gst: string
   website: string
+  /** Base64 data URI, or null while no logo has been uploaded. */
+  logoDataUrl: string | null
 }
 
 export interface Quote {

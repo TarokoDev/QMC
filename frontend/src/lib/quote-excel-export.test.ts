@@ -11,6 +11,7 @@ const company: CompanyInfo = {
   uen: 'UEN-123',
   gst: 'GST-123',
   website: 'kimchinc.example',
+  logoDataUrl: null,
 }
 
 function makeParams(overrides: Partial<ExportParams> = {}): ExportParams {
