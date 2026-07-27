@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAX_DOCUMENT_BYTES } from './document-path.js'
 
 export const nameBodySchema = z.object({
   name: z.string().min(1),
@@ -114,4 +115,13 @@ export const quoteSchema = z.object({
 
 export const putQuoteBodySchema = z.object({
   quote: quoteSchema,
+})
+
+/// Describes a file the browser is about to upload. `sizeBytes` is what the
+/// client claims; the confirm route checks the real object afterwards, so this
+/// bound only exists to fail fast and cheaply.
+export const createDocumentBodySchema = z.object({
+  fileName: z.string().min(1).max(255),
+  contentType: z.string().max(255).default('application/octet-stream'),
+  sizeBytes: z.number().int().positive().max(MAX_DOCUMENT_BYTES),
 })

@@ -6,6 +6,7 @@ import type {
   LineItemDTO,
   MasterTemplateDTO,
   QuoteDTO,
+  RevisionDocumentDTO,
   QuoteSectionDTO,
   RevisionDTO,
   RevisionSummaryDTO,
@@ -129,6 +130,24 @@ export function toRevisionDTO(revision: RevisionRow): RevisionDTO {
   return {
     ...toRevisionSummaryDTO(revision),
     quote: revision.quote ? toQuoteDTO(revision.quote) : BLANK_QUOTE,
+  }
+}
+
+export function toRevisionDocumentDTO(document: {
+  id: string
+  revisionId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  createdAt: Date
+}): RevisionDocumentDTO {
+  return {
+    id: document.id,
+    revisionId: document.revisionId,
+    fileName: document.fileName,
+    contentType: document.contentType,
+    sizeBytes: document.sizeBytes,
+    createdAt: document.createdAt.toISOString(),
   }
 }
 

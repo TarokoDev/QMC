@@ -12,7 +12,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
-    "roles": "tsx --env-file=.env scripts/set-role.ts"
+    "roles": "tsx --env-file=.env scripts/set-role.ts",
+    "storage:gc": "tsx --env-file=.env scripts/storage-gc.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

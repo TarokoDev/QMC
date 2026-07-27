@@ -8,16 +8,18 @@ import { useLocalStorageState } from '@/hooks/use-local-storage-state'
 import { cn } from '@/lib/utils'
 import type { Quote } from '@/lib/mock-data'
 import { BasicInformationTab } from '@/pages/QuoteEditor/BasicInformationTab'
+import { DocumentsTab } from '@/pages/QuoteEditor/DocumentsTab'
 import { QuotationItemsTab } from '@/pages/QuoteEditor/QuotationItemsTab'
 import { QuotePreview } from '@/pages/QuoteEditor/QuotePreview'
 import { SummaryTab } from '@/pages/QuoteEditor/SummaryTab'
 
-type TabId = 'basic' | 'items' | 'summary'
+type TabId = 'basic' | 'items' | 'summary' | 'documents'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'basic', label: 'Basic Information' },
   { id: 'items', label: 'Quotation Items' },
   { id: 'summary', label: 'Summary' },
+  { id: 'documents', label: 'Documents' },
 ]
 
 export interface RevisionChip {
@@ -46,6 +48,12 @@ interface Props {
    * there is no write endpoint behind any of these controls at all.
    */
   readOnly?: boolean
+  /**
+   * Set only by the admin drill-down: the documents being listed belong to
+   * this user, not the viewer, so they are read and signed through the
+   * admin-scoped routes.
+   */
+  adminUserId?: string
 }
 
 export function QuoteEditorLayout({
@@ -64,6 +72,7 @@ export function QuoteEditorLayout({
   onResetTemplate,
   onUseMasterTemplate,
   readOnly = false,
+  adminUserId,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('basic')
   const [tabRailCollapsed, setTabRailCollapsed] = useLocalStorageState('qms:tabRailCollapsed', false)
@@ -91,6 +100,10 @@ export function QuoteEditorLayout({
   // Only the latest revision was ever editable; `readOnly` freezes the rest too.
   const fieldsReadOnly = readOnly || !isLatestRevision
 
+  // Documents hang off a revision, so the editors that have none (the category
+  // library and the master template) do not get the tab at all.
+  const visibleTabs = hideRevisions ? TABS.filter((tab) => tab.id !== 'documents') : TABS
+
   return (
     <div className="flex h-full flex-col">
       <Breadcrumb items={breadcrumbItems} />
@@ -113,7 +126,7 @@ export function QuoteEditorLayout({
               </>
             )}
           </Button>
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -238,6 +251,9 @@ export function QuoteEditorLayout({
               />
             )}
             {activeTab === 'summary' && <SummaryTab quote={quote} />}
+            {activeTab === 'documents' && !hideRevisions && (
+              <DocumentsTab revisionId={activeRevisionId} readOnly={fieldsReadOnly} adminUserId={adminUserId} />
+            )}
           </div>
         </div>
 

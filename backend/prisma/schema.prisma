@@ -80,8 +80,43 @@ model Revision {
   position  Int
   createdAt DateTime @default(now()) @map("created_at")
   quote     Quote?
+  documents RevisionDocument[]
 
   @@map("revisions")
+}
+
+/// A file attached to one revision — the signed quote PDF, SketchUp files,
+/// site photos. The bytes live in the private Supabase Storage bucket
+/// `quote-documents`; this table is the only index of them.
+///
+/// `storagePath` is built by the backend (never sent by the client) as
+/// `{ownerId}/{revisionId}/{id}{.ext}`, because storage row-level security
+/// scopes on the first path segment.
+///
+/// Deleting anything above this row cascades in Postgres with no application
+/// code running, which would strand the storage objects — every delete route
+/// must therefore call `collectDocumentPaths()` *before* deleting. See
+/// backend/src/document-storage.ts.
+model RevisionDocument {
+  id          String   @id @default(uuid())
+  revisionId  String   @map("revision_id")
+  revision    Revision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+  /// The name the user uploaded, sanitised. Display only — never a storage key.
+  fileName    String   @map("file_name")
+  contentType String   @default("application/octet-stream") @map("content_type")
+  sizeBytes   Int      @map("size_bytes")
+  storagePath String   @unique @map("storage_path")
+  /// 'pending' until the uploaded object is confirmed present, then 'ready'.
+  /// Pending rows are hidden from listings and swept an hour later — they are
+  /// how a failed upload is guaranteed not to strand an object nobody knows about.
+  status      String   @default("pending")
+  /// Supabase auth UID of the uploader, recorded so provenance survives a
+  /// future change to who can reach a folder.
+  uploadedBy  String   @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([revisionId, createdAt])
+  @@map("revision_documents")
 }
 
 /// Quote content (info + nested sections/areas/items). Owned by exactly one

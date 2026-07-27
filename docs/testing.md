@@ -2,7 +2,7 @@
 
 Complete reference for the QMC test suite — every test, what it protects, how it looks when it passes or fails, and how critical each one is.
 
-**Current state: 66 tests across 7 files.** Frontend 47, backend 19. Every test is a pure function test: no database, no network, no environment variables, no browser. The whole suite runs in well under a second.
+**Current state: 138 tests across 14 files.** Frontend 62, backend 76. Every test is a pure function test: no database, no network, no environment variables, no browser. The whole suite runs in well under a second.
 
 ---
 
@@ -21,6 +21,8 @@ Complete reference for the QMC test suite — every test, what it protects, how 
   - [Backend: quote-mapper.test.ts (6)](#backend-quote-mappertestts--6-tests)
   - [Backend: clone-quote.test.ts (3)](#backend-clone-quotetestts--3-tests)
   - [Backend: schemas.test.ts (10)](#backend-schemastestts--10-tests)
+  - [Revision documents (3 files)](#revision-documents)
+- [Manual checks: revision documents](#manual-checks-revision-documents)
 - [Coverage map and gaps](#coverage-map-and-gaps)
 - [Conventions](#conventions)
 - [CI](#ci)
@@ -545,6 +547,52 @@ AssertionError: expected false to be true
 
 **Flip the assertion to `false` and rename the test** (drop the `KNOWN GAP:` prefix) — do not delete it. The rule is now enforced and deserves a permanent test.
 
+### Revision documents
+
+Three files cover the Documents tab. The feature is mostly I/O — Supabase Storage on one side, cascading deletes on the other — so the logic worth testing was deliberately pushed into pure helpers and a `fetch`-shaped seam.
+
+📁 [`backend/src/document-path.test.ts`](../backend/src/document-path.test.ts) — 16 tests over [`document-path.ts`](../backend/src/document-path.ts)
+
+| Rule | Example | Rating |
+| --- | --- | --- |
+| The storage key never contains the user's filename | `Client Contract (final).pdf` → `{owner}/{rev}/{uuid}.pdf` | 🔴 High |
+| The first path segment is exactly the owner id | this is the segment storage RLS compares to `auth.uid()` | 🔴 High |
+| Separators, traversal and control characters are stripped from display names | `../../etc/passwd` → `etc passwd` | 🟠 Medium |
+| Long names are capped at 200 chars, extension kept | `aaa….skp` → 200 chars still ending `.skp` | 🟡 Low |
+
+📁 [`backend/src/document-storage.test.ts`](../backend/src/document-storage.test.ts) — 10 tests over [`document-storage.ts`](../backend/src/document-storage.ts), with `fetch` stubbed
+
+| Rule | Example | Rating |
+| --- | --- | --- |
+| A missing service-role key raises `SupabaseStorageUnavailableError`, with no request sent | routes turn this into a 503, not a 500 | 🟠 Medium |
+| Signed URLs carry `&download=<name>` | restores the filename **and** forces `Content-Disposition: attachment` | 🔴 High |
+| `statObject` returns `null` for a missing object and on a 404 | drives the "upload did not complete" 409 | 🟠 Medium |
+| `removeObjects` chunks at 100 and no-ops on `[]` | a 250-key delete makes 3 requests | 🟠 Medium |
+
+📁 [`frontend/src/lib/document-service.test.ts`](../frontend/src/lib/document-service.test.ts) — 6 tests, `fetch` and `XMLHttpRequest` both stubbed
+
+| Rule | Example | Rating |
+| --- | --- | --- |
+| An oversized file is rejected before any network call | 50 MB + 1 byte → `FileTooLargeError`, `fetch` never called | 🟠 Medium |
+| A failed upload deletes the row it reserved | PUT 500 → `DELETE /api/documents/:id` | 🔴 High |
+| A failed confirm deletes it too | confirm 409 → same cleanup | 🔴 High |
+| A failed cleanup still surfaces the original error | the sweep is the backstop, not the error message | 🟠 Medium |
+
+**Why the cleanup tests are High:** they are what keeps storage and the database from drifting apart. Without them a dropped upload leaves a document row the user can see but never open.
+
+---
+
+## Manual checks: revision documents
+
+Route handlers and the cascade wiring have no automated coverage (see the gaps below), so these are worth walking once after touching anything in this area:
+
+1. Upload a PDF to the latest revision → reload → it lists → **Download** opens it under its original filename.
+2. Switch to `R0` → documents still list and download, the drop zone and delete buttons are gone. Then `curl -X POST` the upload route against `R0` with a valid token → expect **403**, not just a hidden button.
+3. Add a revision → the new one starts with **no** documents, and the source revision keeps all of its own.
+4. Try a 60 MB file → rejected in the browser with a clear message, no request sent.
+5. Delete a whole folder that contained documents, then run `npm run storage:gc` in `backend/` → it reports nothing orphaned.
+6. Open the admin drill-down on another user's client → documents list and download work; no upload or delete controls anywhere.
+
 ---
 
 ## Coverage map and gaps
@@ -570,12 +618,13 @@ flowchart TB
         U4["require-auth middleware<br/>401 vs 503 branch"]
         U5["Debounced autosave timing"]
         U6["Print CSS / page breaks"]
+        U7["Document routes<br/>latest-revision 403 · cascade cleanup"]
     end
 
     classDef ok fill:#e8f5e9,stroke:#43a047,color:#1b5e20
     classDef no fill:#ffebee,stroke:#e53935,color:#b71c1c
     class C1,C2,C3,C4,C5,C6,C7 ok
-    class U1,U2,U3,U4,U5,U6 no
+    class U1,U2,U3,U4,U5,U6,U7 no
 ```
 
 **Honest summary of what is *not* protected.** The suite is strong on pure logic and has nothing on integration. Specifically:

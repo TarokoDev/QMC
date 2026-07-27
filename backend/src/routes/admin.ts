@@ -7,10 +7,19 @@ import {
   folderOwnedBy,
   revisionOwnedBy,
 } from '../owner-scope.js'
-import { categoryInclude, revisionInclude, toCategoryDTO, toClientDTO, toRevisionDTO, toRevisionSummaryDTO } from '../quote-mapper.js'
+import {
+  categoryInclude,
+  revisionInclude,
+  toCategoryDTO,
+  toClientDTO,
+  toRevisionDTO,
+  toRevisionDocumentDTO,
+  toRevisionSummaryDTO,
+} from '../quote-mapper.js'
 import { sumQuoteTotals } from '../quote-totals.js'
 import { requireAdmin } from '../require-admin.js'
 import { adminMetricsQuerySchema, authEventQuerySchema, refreshQuerySchema } from '../schemas.js'
+import { SupabaseStorageUnavailableError, createSignedDownloadUrl } from '../document-storage.js'
 import { SupabaseAdminUnavailableError, listAuthUsers } from '../supabase-admin.js'
 
 export const adminRouter = Router()
@@ -281,5 +290,53 @@ adminRouter.get(
     })
     if (!revision) return res.status(404).json({ error: 'Revision not found' })
     res.json(toRevisionDTO(revision))
+  }),
+)
+
+adminRouter.get(
+  '/users/:userId/revisions/:id/documents',
+  asyncHandler(async (req, res) => {
+    const revision = await prisma.revision.findFirst({
+      where: { id: req.params.id, ...revisionOwnedBy(req.params.userId) },
+      select: { id: true },
+    })
+    if (!revision) return res.status(404).json({ error: 'Revision not found' })
+
+    const documents = await prisma.revisionDocument.findMany({
+      where: { revisionId: revision.id, status: 'ready' },
+      orderBy: { createdAt: 'asc' },
+    })
+    res.json(documents.map(toRevisionDocumentDTO))
+  }),
+)
+
+// The one POST in this file, and still a read: signing a download URL writes
+// nothing. It has to live on the server because storage RLS scopes objects to
+// the *designer's* auth UID, so an admin's own token could never sign them.
+//
+// This does mean an admin can open a client's signed contract PDF. That is a
+// deliberate decision, consistent with admins already reading the full quote,
+// its pricing and the client's contact details.
+adminRouter.post(
+  '/users/:userId/documents/:id/download',
+  asyncHandler(async (req, res) => {
+    const document = await prisma.revisionDocument.findFirst({
+      where: {
+        id: req.params.id,
+        status: 'ready',
+        revision: revisionOwnedBy(req.params.userId),
+      },
+    })
+    if (!document) return res.status(404).json({ error: 'Document not found' })
+
+    try {
+      const url = await createSignedDownloadUrl(document.storagePath, document.fileName)
+      res.json({ url, expiresIn: 60 })
+    } catch (error) {
+      if (error instanceof SupabaseStorageUnavailableError) {
+        return res.status(503).json({ error: error.message })
+      }
+      throw error
+    }
   }),
 )

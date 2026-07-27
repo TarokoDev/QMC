@@ -80,3 +80,29 @@ export interface RevisionSummaryDTO {
 export interface RevisionDTO extends RevisionSummaryDTO {
   quote: QuoteDTO
 }
+
+export interface RevisionDocumentDTO {
+  id: string
+  revisionId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  createdAt: string
+}
+
+/**
+ * Answer to "I want to upload this file". The browser then PUTs the bytes
+ * straight to Supabase Storage at `storagePath` and calls the confirm route.
+ * `storagePath` appears here and nowhere else — the key layout stays an
+ * implementation detail everywhere it is not strictly needed.
+ */
+export interface DocumentUploadTicketDTO {
+  document: RevisionDocumentDTO
+  bucket: string
+  storagePath: string
+}
+
+export interface DocumentDownloadDTO {
+  url: string
+  expiresIn: number
+}

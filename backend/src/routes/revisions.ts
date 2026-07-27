@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { prisma } from '../db.js'
+import { collectDocumentPaths, removeObjectsInBackground } from '../document-cleanup.js'
 import { clientOwnedBy, revisionOwnedBy } from '../owner-scope.js'
 import { revisionInclude, toRevisionDTO } from '../quote-mapper.js'
 import { putQuoteBodySchema } from '../schemas.js'
@@ -10,6 +11,11 @@ export const revisionsRouter = Router()
 
 // Clones the given revision (or the client's latest, if none specified) into
 // a new revision — mirrors the frontend's "+" clone-active-revision action.
+//
+// Quote content is copied; attached documents are deliberately not. A signed
+// PDF or a set of site photos belongs to the revision it was filed against,
+// and duplicating potentially hundreds of megabytes on every "+" would cost
+// storage for copies nobody asked for. The new revision starts empty.
 revisionsRouter.post(
   '/clients/:clientId/revisions',
   asyncHandler(async (req, res) => {
@@ -90,7 +96,13 @@ revisionsRouter.delete(
     })
     if (latest?.id !== revision.id) return res.status(400).json({ error: 'Only the latest revision can be deleted' })
 
+    // Collected before the delete — the cascade takes the document rows with
+    // it and there is no trigger to catch them. See document-cleanup.ts.
+    const documentPaths = await collectDocumentPaths({ id: req.params.id })
+
     await prisma.revision.delete({ where: { id: req.params.id } })
+
+    removeObjectsInBackground(documentPaths)
     res.status(204).end()
   }),
 )

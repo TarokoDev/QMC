@@ -3,6 +3,7 @@ import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { todaySGDateString } from '../date-utils.js'
 import { prisma } from '../db.js'
+import { collectDocumentPaths, removeObjectsInBackground } from '../document-cleanup.js'
 import { categoryOwnedBy, clientOwnedBy, revisionOwnedBy } from '../owner-scope.js'
 import {
   BLANK_QUOTE,
@@ -113,10 +114,19 @@ clientsRouter.patch(
 clientsRouter.delete(
   '/clients/:id',
   asyncHandler(async (req, res) => {
+    // Collected before the delete — the cascade takes the document rows with
+    // it and there is no trigger to catch them. See document-cleanup.ts.
+    const documentPaths = await collectDocumentPaths({
+      clientId: req.params.id,
+      ...revisionOwnedBy(req.authUserId),
+    })
+
     const { count } = await prisma.client.deleteMany({
       where: { id: req.params.id, ...clientOwnedBy(req.authUserId) },
     })
     if (count === 0) return res.status(404).json({ error: 'Client not found' })
+
+    removeObjectsInBackground(documentPaths)
     res.status(204).end()
   }),
 )

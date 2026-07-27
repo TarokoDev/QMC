@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { asyncHandler } from '../async-handler.js'
 import { buildSectionsCreateInput } from '../clone-quote.js'
 import { prisma } from '../db.js'
-import { categoryOwnedBy, folderOwnedBy } from '../owner-scope.js'
+import { collectDocumentPaths, removeObjectsInBackground } from '../document-cleanup.js'
+import { categoryOwnedBy, clientOwnedBy, folderOwnedBy } from '../owner-scope.js'
 import { categoryInclude, toCategoryDTO } from '../quote-mapper.js'
 import { categoryBodySchema, putQuoteBodySchema } from '../schemas.js'
 
@@ -73,10 +74,18 @@ categoriesRouter.patch(
 categoriesRouter.delete(
   '/categories/:id',
   asyncHandler(async (req, res) => {
+    // Collected before the delete — the cascade takes the document rows with
+    // it and there is no trigger to catch them. See document-cleanup.ts.
+    const documentPaths = await collectDocumentPaths({
+      client: { categoryId: req.params.id, ...clientOwnedBy(req.authUserId) },
+    })
+
     const { count } = await prisma.category.deleteMany({
       where: { id: req.params.id, ...categoryOwnedBy(req.authUserId) },
     })
     if (count === 0) return res.status(404).json({ error: 'Category not found' })
+
+    removeObjectsInBackground(documentPaths)
     res.status(204).end()
   }),
 )

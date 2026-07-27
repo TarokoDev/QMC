@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { asyncHandler } from '../async-handler.js'
 import { prisma } from '../db.js'
+import { collectDocumentPaths, removeObjectsInBackground } from '../document-cleanup.js'
+import { categoryOwnedBy } from '../owner-scope.js'
 import { nameBodySchema } from '../schemas.js'
 import type { FolderDTO } from '../types.js'
 
@@ -46,8 +48,16 @@ foldersRouter.patch(
 foldersRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
+    // Collected before the delete: the cascade takes the document rows with it
+    // and there is no trigger to catch them. See document-cleanup.ts.
+    const documentPaths = await collectDocumentPaths({
+      client: { category: { folderId: req.params.id, ...categoryOwnedBy(req.authUserId) } },
+    })
+
     const { count } = await prisma.folder.deleteMany({ where: { id: req.params.id, ownerId: req.authUserId } })
     if (count === 0) return res.status(404).json({ error: 'Folder not found' })
+
+    removeObjectsInBackground(documentPaths)
     res.status(204).end()
   }),
 )

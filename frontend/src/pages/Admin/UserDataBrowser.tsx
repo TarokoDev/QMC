@@ -119,6 +119,7 @@ export function UserDataBrowser({ userId }: { userId: string }) {
           quote={revision.quote}
           onQuoteChange={() => {}}
           readOnly
+          adminUserId={userId}
         />
         <button
           type="button"

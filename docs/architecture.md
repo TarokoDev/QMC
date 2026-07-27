@@ -243,6 +243,9 @@ sequenceDiagram
 | `schemas.ts` | zod request-body contracts |
 | `quote-mapper.ts` | Prisma rows → `QuoteDTO` (ordering, `Decimal`→`number`, `BLANK_QUOTE` fallback) |
 | `clone-quote.ts` | `QuoteDTO` → Prisma nested-create input (the reverse) |
+| `document-path.ts` | Filename sanitising + storage key construction (pure) |
+| `document-storage.ts` | Supabase Storage REST calls with the service-role key (`fetch` only, no SDK) |
+| `document-cleanup.ts` | Collects storage keys before a cascading delete removes their rows |
 | `routes/*.ts` | One file per resource; names map 1:1 to frontend service functions |
 
 `quote-mapper` and `clone-quote` are inverses, and their round-trip losslessness is pinned by a test — see [testing.md](testing.md#backend-quote-mappertestts--6-tests).
@@ -265,6 +268,33 @@ erDiagram
 One `Quote` table serves all three owners via three nullable unique FKs (`categoryId`, `revisionId`, `masterTemplateId`). **Application code guarantees exactly one is set — the database does not enforce it.**
 
 Every parent→child relation cascades on delete. `company_settings` and `quote_config` are single-row global config.
+
+`revision_documents` hangs off `Revision` and indexes the files attached to it — see [Revision documents](#revision-documents) below.
+
+### Revision documents
+
+The Documents tab attaches files to a revision: the exported quote once the client has signed it, SketchUp models, site photos. Postgres stores only metadata; the bytes live in the private Supabase Storage bucket **`quote-documents`**.
+
+**Bytes never pass through the API.** The browser uploads straight to Storage, which keeps 50 MB files off the Node server entirely:
+
+```
+POST /api/revisions/:id/documents   → row written as 'pending', storage key returned
+browser PUTs the file to Storage    → direct, with an upload progress bar (XHR)
+POST /api/documents/:id/confirm     → object verified, real size read, row flipped to 'ready'
+```
+
+Reserving the row first is what makes a dropped upload harmless: an object can never exist without a row pointing at it. A row without its object is the only possible mismatch, it is hidden from listings, and it is swept an hour later. The reverse order would strand an untracked object on every failure.
+
+Four rules worth knowing before touching this:
+
+1. **Keys are `{ownerId}/{revisionId}/{documentId}.{ext}`.** The first segment is the Supabase auth UID because that is what the storage RLS policy compares to `auth.uid()`; the user's filename never appears in the key. The owner segment comes from the verified JWT, never from `Folder.ownerId`, which is still nullable on pre-auth rows.
+2. **Cascades strand objects.** Deleting a folder, category, client or revision removes the rows inside Postgres with no application code running, so all four delete routes call `collectDocumentPaths()` *before* the delete and clean up after it. `npm run storage:gc` in `backend/` is the backstop, and the check for whether a leak is real.
+3. **Downloads are signed server-side**, 60 s expiry, with `&download=` forcing `Content-Disposition: attachment` — which is also what stops an uploaded HTML or SVG file from executing on the storage origin. The admin drill-down needs exactly this path, since an admin's own token cannot sign another user's objects.
+4. **Documents are not copied when a revision is cloned.** A signed PDF is evidence about the revision it was filed against, and duplicating hundreds of megabytes on every "+" would cost storage for copies nobody asked for.
+
+Uploading and deleting require the latest revision, enforced with a 403 on the server as well as hidden controls in the UI. `SUPABASE_SERVICE_ROLE_KEY` is **required** for this feature — without it downloads, deletes and confirmations all 503.
+
+One-time Supabase setup (see [README](../README.md#revision-documents-supabase-storage) for the SQL).
 
 ---
 
@@ -371,5 +401,6 @@ Rule 2 is the durable one: any future network failure now surfaces as an error, 
 | Change the quote tree shape | `schema.prisma` → migrate → `types.ts` → `quote-mapper.ts` → `clone-quote.ts` → frontend `mock-data.ts` types |
 | Adjust auth or ownership | `require-auth.ts` + the Prisma relation filters in each route |
 | Bump the displayed version | `frontend/package.json` `version` only — injected as `__APP_VERSION__` |
+| Add a delete route that reaches revisions | Call `collectDocumentPaths()` **before** the delete, then `removeObjectsInBackground()` — the cascade takes the rows silently |
 
 **Before any change lands:** `npm test` and `npm run build` in the affected workspace. The build is the source of truth for "does it compile" — see [testing.md](testing.md).

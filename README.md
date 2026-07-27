@@ -169,7 +169,43 @@ npx prisma migrate dev    # applies migrations + runs seed automatically
 npm run dev                # starts Express on http://localhost:4000
 ```
 
-### 3. Frontend setup
+### 3. Revision documents (Supabase Storage)
+
+The Documents tab attaches files to a revision — the signed quote PDF, SketchUp files, photos. It needs one private bucket and two policies. Run this once in the Supabase SQL editor:
+
+```sql
+-- Private bucket for per-revision attachments. 50 MB matches Supabase's default
+-- per-file limit and the checks in the API and the browser.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('quote-documents', 'quote-documents', false, 52428800)
+on conflict (id) do update
+  set public = false, file_size_limit = excluded.file_size_limit;
+
+-- Keys are `{ownerId}/{revisionId}/{documentId}.{ext}`; the first segment is the
+-- uploader's auth UID, which is what lets a storage policy scope by owner
+-- without joining the application tables.
+create policy "quote_documents_read_own"
+  on storage.objects for select to authenticated
+  using (
+    bucket_id = 'quote-documents'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "quote_documents_insert_own"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'quote-documents'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- No UPDATE policy: keys are single-use uuids, so an overwrite is always a bug.
+-- No DELETE policy: deletes go through the API, so the row and the object die
+-- together instead of one outliving the other.
+```
+
+Then make sure `SUPABASE_SERVICE_ROLE_KEY` is set in **every** backend environment. Downloads, deletes and upload confirmation all sign or call Storage with it; without it the Documents tab answers 503.
+
+### 4. Frontend setup
 
 ```bash
 cd frontend
@@ -202,6 +238,7 @@ npm run dev                # starts Vite on http://localhost:5173
 | `npx prisma migrate dev` | Create/apply migrations (auto-seeds) |
 | `npx prisma db seed` | Seed database manually |
 | `npx prisma generate` | Regenerate Prisma client |
+| `npm run storage:gc` | List document objects in Storage with no database row (add `-- --delete` to remove them) |
 
 ---
 
@@ -1095,6 +1132,71 @@ Wholesale replace a revision's quote content (autosave endpoint).
 
 ---
 
+### Documents
+
+Files attached to a revision — the signed quote PDF, SketchUp files, site photos. The bytes go straight from the browser to a private Supabase Storage bucket; these routes hand out the key and verify the result. See [architecture.md](docs/architecture.md#revision-documents) for why the handshake is shaped this way.
+
+#### `GET /api/revisions/:id/documents`
+
+**Response `200`:**
+
+```json
+[
+  {
+    "id": "doc-1...",
+    "revisionId": "clx11de...",
+    "fileName": "Signed Quote R1.pdf",
+    "contentType": "application/pdf",
+    "sizeBytes": 284913,
+    "createdAt": "2026-07-27T09:14:22.000Z"
+  }
+]
+```
+
+#### `POST /api/revisions/:id/documents`
+
+Step 1 of an upload: reserves a row and returns the storage key to PUT the bytes to. Only the latest revision accepts new documents.
+
+**Request body:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `fileName` | string | ✅ | 1–255 chars; sanitised for display, never used as the key |
+| `contentType` | string | ❌ | Defaults to `application/octet-stream` |
+| `sizeBytes` | number | ✅ | Positive integer, max `52428800` (50 MB) |
+
+**Response `201`:**
+
+```json
+{
+  "document": { "id": "doc-1...", "revisionId": "clx11de...", "fileName": "plans.skp", "contentType": "application/octet-stream", "sizeBytes": 18234112, "createdAt": "2026-07-27T09:20:00.000Z" },
+  "bucket": "quote-documents",
+  "storagePath": "e1b2.../clx11de.../doc-1....skp"
+}
+```
+
+**Response `403`:** `{ "error": "Only the latest revision accepts new documents" }`
+
+#### `POST /api/documents/:id/confirm`
+
+Step 3: checks the object exists and reads its real size and type, then marks the document ready. Returns the document. `409` if the upload never landed (the reserved row is deleted), `413` if the real file exceeds 50 MB.
+
+#### `POST /api/documents/:id/download`
+
+**Response `200`:**
+
+```json
+{ "url": "https://<project>.supabase.co/storage/v1/object/sign/quote-documents/...&download=Signed%20Quote%20R1.pdf", "expiresIn": 60 }
+```
+
+POST rather than GET because it mints a short-lived credential rather than returning a resource. `503` when `SUPABASE_SERVICE_ROLE_KEY` is missing.
+
+#### `DELETE /api/documents/:id`
+
+Removes the storage object and then the row. `204` on success, `403` on an earlier revision.
+
+---
+
 ### Master Template
 
 #### `GET /api/master-template`
@@ -1289,6 +1391,11 @@ Called by the frontend's "Use Demo Account" login button, on demo-user logout, a
 | GET | `/api/revisions/:id` | Get revision with quote |
 | DELETE | `/api/revisions/:id` | Delete revision (latest only, not R0) |
 | PUT | `/api/revisions/:id/quote` | Replace revision quote (autosave) |
+| GET | `/api/revisions/:id/documents` | List documents attached to a revision |
+| POST | `/api/revisions/:id/documents` | Reserve an upload (latest revision only) |
+| POST | `/api/documents/:id/confirm` | Confirm the uploaded object landed |
+| POST | `/api/documents/:id/download` | Mint a 60-second signed download URL |
+| DELETE | `/api/documents/:id` | Delete a document (latest revision only) |
 | GET | `/api/master-template` | Get master template (auto-creates) |
 | PUT | `/api/master-template/quote` | Replace master template quote (autosave) |
 | GET | `/api/settings` | Get company settings + quote config |

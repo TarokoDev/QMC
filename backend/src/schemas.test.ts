@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   adminMetricsQuerySchema,
+  createDocumentBodySchema,
   authEventBodySchema,
   authEventQuerySchema,
   clientBodySchema,
@@ -131,5 +132,35 @@ describe('admin date ranges', () => {
   it('treats an absent authUserId as project-wide', () => {
     expect(adminMetricsQuerySchema.parse({}).authUserId).toBeUndefined()
     expect(adminMetricsQuerySchema.parse({ authUserId: 'uid-1' }).authUserId).toBe('uid-1')
+  })
+})
+
+describe('createDocumentBodySchema', () => {
+  const file = { fileName: 'signed-quote.pdf', contentType: 'application/pdf', sizeBytes: 1024 }
+
+  it('accepts an ordinary upload', () => {
+    expect(createDocumentBodySchema.parse(file)).toEqual(file)
+  })
+
+  it('falls back to a generic content type — SketchUp files arrive without one', () => {
+    const { fileName, sizeBytes } = file
+    expect(createDocumentBodySchema.parse({ fileName, sizeBytes }).contentType).toBe(
+      'application/octet-stream',
+    )
+  })
+
+  it('rejects a file one byte over the 50 MB limit', () => {
+    expect(createDocumentBodySchema.safeParse({ ...file, sizeBytes: 52_428_801 }).success).toBe(false)
+    expect(createDocumentBodySchema.safeParse({ ...file, sizeBytes: 52_428_800 }).success).toBe(true)
+  })
+
+  it('rejects empty files and fractional sizes', () => {
+    expect(createDocumentBodySchema.safeParse({ ...file, sizeBytes: 0 }).success).toBe(false)
+    expect(createDocumentBodySchema.safeParse({ ...file, sizeBytes: 10.5 }).success).toBe(false)
+  })
+
+  it('rejects a nameless file and an absurdly long name', () => {
+    expect(createDocumentBodySchema.safeParse({ ...file, fileName: '' }).success).toBe(false)
+    expect(createDocumentBodySchema.safeParse({ ...file, fileName: 'a'.repeat(300) }).success).toBe(false)
   })
 })

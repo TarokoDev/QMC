@@ -6,6 +6,7 @@ import { authEventsRouter } from './routes/auth-events.js'
 import { categoriesRouter } from './routes/categories.js'
 import { clientsRouter } from './routes/clients.js'
 import { demoRouter } from './routes/demo.js'
+import { documentsRouter } from './routes/documents.js'
 import { foldersRouter } from './routes/folders.js'
 import { masterTemplateRouter } from './routes/master-template.js'
 import { revisionsRouter } from './routes/revisions.js'
@@ -29,6 +30,7 @@ app.use('/api/folders', foldersRouter)
 app.use('/api', categoriesRouter)
 app.use('/api', clientsRouter)
 app.use('/api', revisionsRouter)
+app.use('/api', documentsRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/master-template', masterTemplateRouter)
 app.use('/api/demo', demoRouter)
