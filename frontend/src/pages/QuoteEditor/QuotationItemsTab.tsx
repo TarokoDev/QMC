@@ -245,13 +245,13 @@ export function QuotationItemsTab({
                       <span className="w-8 shrink-0 font-medium text-muted-foreground">
                         {sectionLetter}.{areaIndex + 1}
                       </span>
-                      <Input
+                      <Textarea
                         value={area.name}
                         onChange={(e) =>
                           updateArea(activeSection.id, area.id, (a) => ({ ...a, name: e.target.value }))
                         }
                         disabled={readOnly}
-                        className="max-w-64"
+                        className="max-w-64 min-h-0 py-1"
                         onClick={(e) => e.stopPropagation()}
                       />
                       <Checkbox
@@ -375,7 +375,7 @@ export function QuotationItemsTab({
                                 />
                               </td>
                               <td className="px-2 py-1.5">{money(itemTotal(item))}</td>
-                              <td className="px-2 py-1.5">{itemProfitPercent(item).toFixed(2)}</td>
+                              <td className="px-2 py-1.5">{itemProfitPercent(item).toFixed(2)}%</td>
                               <td className="px-2 py-1.5 text-center">
                                 <Checkbox
                                   checked={item.foc}

@@ -150,7 +150,7 @@ export function QuotePrintDocument({
                     <Fragment key={area.id}>
                       <tr>
                         <td className={`${cell} font-medium whitespace-nowrap`}>{areaNumber}</td>
-                        <td className={`${cell} font-medium`} colSpan={5}>
+                        <td className={`${cell} font-medium whitespace-pre-line`} colSpan={5}>
                           {area.name}
                         </td>
                       </tr>
@@ -159,7 +159,7 @@ export function QuotePrintDocument({
                           <td className={`${cell} whitespace-nowrap`}>
                             {areaNumber}.{itemIndex + 1}
                           </td>
-                          <td className={cell}>{item.description}</td>
+                          <td className={`${cell} align-top whitespace-pre-line`}>{item.description}</td>
                           <td className={`${cell} text-right whitespace-nowrap`}>{item.qty}</td>
                           <td className={`${cell} text-right whitespace-nowrap`}>{item.unit}</td>
                           <td className={`${cell} text-right whitespace-nowrap`}>{amount(item.selling)}</td>

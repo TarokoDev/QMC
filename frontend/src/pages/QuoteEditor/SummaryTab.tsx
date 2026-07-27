@@ -8,6 +8,7 @@ import {
   sectionTotals,
 } from '@/lib/quote-calculations'
 import { useSettings } from '@/lib/settings-context'
+import { ProfitShareCalculator } from '@/pages/QuoteEditor/ProfitShareCalculator'
 
 interface Props {
   quote: Quote
@@ -93,7 +94,7 @@ export function SummaryTab({ quote }: Props) {
                               <td className="border px-3 py-1.5 align-top font-medium whitespace-nowrap">
                                 {areaNumber}
                               </td>
-                              <td colSpan={7} className="border px-3 py-1.5 font-medium">
+                              <td colSpan={7} className="border px-3 py-1.5 font-medium whitespace-pre-line">
                                 {area.name}
                               </td>
                             </tr>
@@ -102,7 +103,9 @@ export function SummaryTab({ quote }: Props) {
                                 <td className="border px-3 py-1.5 align-top whitespace-nowrap text-muted-foreground">
                                   {areaNumber}.{itemIndex + 1}
                                 </td>
-                                <td className="border px-3 py-1.5">{item.description}</td>
+                                <td className="border px-3 py-1.5 align-top whitespace-pre-line">
+                                  {item.description}
+                                </td>
                                 <td className="border px-3 py-1.5 text-right whitespace-nowrap tabular-nums">
                                   {item.qty}
                                 </td>
@@ -117,7 +120,7 @@ export function SummaryTab({ quote }: Props) {
                                   {item.foc ? 'FOC' : amount(itemTotal(item))}
                                 </td>
                                 <td className="border px-3 py-1.5 text-right whitespace-nowrap tabular-nums">
-                                  {itemProfitPercent(item).toFixed(2)}
+                                  {itemProfitPercent(item).toFixed(2)}%
                                 </td>
                               </tr>
                             ))}
@@ -158,6 +161,12 @@ export function SummaryTab({ quote }: Props) {
           percent={quoteTotals.cost === 0 ? 0 : (quoteTotals.profit / quoteTotals.cost) * 100}
         />
       </div>
+
+      <ProfitShareCalculator
+        profit={quoteTotals.profit}
+        currencySymbol={currencySymbol}
+        storageKey={quote.info.quotationRef || quote.info.refNumber}
+      />
 
       <div>
         <p className="mb-2 text-sm font-medium">Payment Terms & Schedule</p>
