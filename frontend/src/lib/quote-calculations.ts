@@ -25,6 +25,14 @@ export function includedAreas(section: QuoteSection): AreaOfWork[] {
   return section.areas.filter((area) => area.included)
 }
 
+export function areaOfWorkCount(section: QuoteSection) {
+  return { included: section.areas.filter((area) => area.included).length, total: section.areas.length }
+}
+
+export function itemInclusionCount(area: AreaOfWork) {
+  return { included: area.items.filter((item) => item.inc).length, total: area.items.length }
+}
+
 export function sectionTotals(section: QuoteSection) {
   const items = includedAreas(section).flatMap((area) => area.items)
   const price = items.reduce((sum, item) => sum + itemTotal(item), 0)

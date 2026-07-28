@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  areaOfWorkCount,
   formatMoney,
   getQuoteSummary,
   includedAreas,
+  itemInclusionCount,
   itemProfitPercent,
   itemTotal,
   sectionTotals,
@@ -67,6 +69,50 @@ describe('includedAreas', () => {
 
   it('returns an empty list for a section with no areas', () => {
     expect(includedAreas(makeSection({ areas: [] }))).toEqual([])
+  })
+})
+
+describe('areaOfWorkCount', () => {
+  it('counts areas with included = true against the total area count', () => {
+    const section = makeSection({
+      areas: [
+        makeArea({ id: 'a1', included: true }),
+        makeArea({ id: 'a2', included: false }),
+        makeArea({ id: 'a3', included: true }),
+      ],
+    })
+    expect(areaOfWorkCount(section)).toEqual({ included: 2, total: 3 })
+  })
+
+  it('returns 0/0 for a section with no areas', () => {
+    expect(areaOfWorkCount(makeSection({ areas: [] }))).toEqual({ included: 0, total: 0 })
+  })
+
+  it('is not gated by section.complete — counts areas regardless', () => {
+    const section = makeSection({ complete: false, areas: [makeArea({ included: true })] })
+    expect(areaOfWorkCount(section)).toEqual({ included: 1, total: 1 })
+  })
+})
+
+describe('itemInclusionCount', () => {
+  it('counts items with inc = true against the total item count', () => {
+    const area = makeArea({
+      items: [
+        makeItem({ id: 'i1', inc: true }),
+        makeItem({ id: 'i2', inc: false }),
+        makeItem({ id: 'i3', inc: true }),
+      ],
+    })
+    expect(itemInclusionCount(area)).toEqual({ included: 2, total: 3 })
+  })
+
+  it('returns 0/0 for an area with no items', () => {
+    expect(itemInclusionCount(makeArea({ items: [] }))).toEqual({ included: 0, total: 0 })
+  })
+
+  it('is not gated by area.included — counts items regardless', () => {
+    const area = makeArea({ included: false, items: [makeItem({ inc: true })] })
+    expect(itemInclusionCount(area)).toEqual({ included: 1, total: 1 })
   })
 })
 

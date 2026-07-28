@@ -286,6 +286,19 @@ Medium rather than High because this figure is **internal only** — it appears 
 | 10 | keeps only areas whose `included` box is ticked | Middle gate | `[a1 ✓, a2 ✗, a3 ✓]` → `[a1, a3]` | 🔴 High |
 | 11 | returns empty list for a section with no areas | Degenerate input | `areas: []` → `[]` | 🟡 Low |
 
+#### `areaOfWorkCount` / `itemInclusionCount` — 6 tests
+
+Display-only counters shown in `QuotationItemsTab.tsx` headers (Section: `included/total Area of Work` in the main header, `included/total AOW` in the sidebar row; Area of Work: `included/total INC.`). Ungated by design — they count everything in scope, not just what currently passes the three-tier gate — so they don't feed `getQuoteSummary` or any total. 🟡 Low: a wrong count misleads an editor visually but cannot misquote a client, since it never touches money math.
+
+| # | Test | Rule | Example | Rating |
+| --- | --- | --- | --- | --- |
+| — | `areaOfWorkCount` counts `included` areas against total | Section-level, ungated | `[a1 ✓, a2 ✗, a3 ✓]` → `{included:2, total:3}` | 🟡 Low |
+| — | `areaOfWorkCount` returns 0/0 for no areas | Degenerate input | `areas: []` → `{included:0, total:0}` | 🟡 Low |
+| — | `areaOfWorkCount` ignores `section.complete` | Ungated by outer tier | `complete:false` → still counts | 🟡 Low |
+| — | `itemInclusionCount` counts `inc` items against total | Area-level, ungated | `[i1 ✓, i2 ✗, i3 ✓]` → `{included:2, total:3}` | 🟡 Low |
+| — | `itemInclusionCount` returns 0/0 for no items | Degenerate input | `items: []` → `{included:0, total:0}` | 🟡 Low |
+| — | `itemInclusionCount` ignores `area.included` | Ungated by outer tier | `included:false` → still counts | 🟡 Low |
+
 #### `sectionTotals` — 4 tests
 
 | # | Test | Rule | Example | Rating |

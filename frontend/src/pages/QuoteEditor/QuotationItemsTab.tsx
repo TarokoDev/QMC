@@ -10,7 +10,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { useLocalStorageState } from '@/hooks/use-local-storage-state'
 import { cn } from '@/lib/utils'
 import type { AreaOfWork, LineItem, Quote, QuoteSection, Unit } from '@/lib/mock-data'
-import { formatMoney, itemProfitPercent, itemTotal, sectionTotals } from '@/lib/quote-calculations'
+import {
+  areaOfWorkCount,
+  formatMoney,
+  itemInclusionCount,
+  itemProfitPercent,
+  itemTotal,
+  sectionTotals,
+} from '@/lib/quote-calculations'
 import { useSettings } from '@/lib/settings-context'
 
 interface Props {
@@ -180,7 +187,12 @@ export function QuotationItemsTab({
                 )}
               >
                 <span>
-                  <span className="block text-sm font-medium">{sectionLabel(sectionListIndex)}</span>
+                  <span className="block text-sm font-medium flex flex-col">
+                    {sectionLabel(sectionListIndex)}
+                    <span title="Area of Work">
+                      {areaOfWorkCount(section).included}/{areaOfWorkCount(section).total} AOW
+                    </span>
+                  </span>
                   <span className="block text-xs text-muted-foreground">{section.description}</span>
                 </span>
                 <span className="flex items-center gap-2">
@@ -225,7 +237,13 @@ export function QuotationItemsTab({
           <div className="flex min-h-0 flex-1 flex-col gap-4">
             <div className="flex shrink-0 items-start border-b pb-2">
               <div>
-                <p className="text-sm font-medium">{activeSectionLabel}</p>
+                <p className="text-sm font-medium">
+                  {activeSectionLabel}
+                  {' · '}
+                  <span className="text-muted-foreground" title="Area of Work">
+                    {areaOfWorkCount(activeSection).included}/{areaOfWorkCount(activeSection).total} Area of Work
+                  </span>
+                </p>
                 <Textarea
                   value={activeSection.description}
                   onChange={(e) =>
@@ -254,6 +272,9 @@ export function QuotationItemsTab({
                         className="max-w-64 min-h-0 py-1"
                         onClick={(e) => e.stopPropagation()}
                       />
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                        {itemInclusionCount(area).included}/{itemInclusionCount(area).total} INC.
+                      </span>
                       <Checkbox
                         checked={area.included}
                         disabled={readOnly}
@@ -297,7 +318,7 @@ export function QuotationItemsTab({
                         </thead>
                         <tbody>
                           {area.items.map((item, index) => (
-                            <tr key={item.id} className="border-t">
+                            <tr key={item.id} className={cn('border-t', !item.inc && 'opacity-50')}>
                               <td className="px-2 py-1.5">{index + 1}</td>
                               <td className="px-2 py-1.5">
                                 <Textarea

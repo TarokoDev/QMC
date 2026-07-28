@@ -346,6 +346,8 @@ The gate controls **visibility, not just arithmetic**: `getQuoteSummary` strips 
 
 This rule lives in `quote-calculations.ts` and is enforced by 30 tests — it is the most heavily tested logic in the codebase, because it decides every number a client sees.
 
+The Quotation Items tab (`QuotationItemsTab.tsx`) surfaces two read-only counters to help editors see the gate state at a glance, computed by `areaOfWorkCount(section)` and `itemInclusionCount(area)`: the Section header shows `included/total Area of Work` and its sidebar row shows `included/total AOW` (same number, abbreviated for space) — how many of the section's Areas of Work have `included` ticked — and each Area-of-Work header shows `included/total INC.` — how many of its line items have `inc` ticked. Both counters are ungated (they count everything in scope, not just what currently passes the tiers above) and purely informational; they do not feed into `getQuoteSummary` or any total. Rows with `inc: false` also render at reduced opacity in the editor as a visual echo of the same gate. This applies identically to Client quotes and Master Templates, since both render through the same `QuotationItemsTab`.
+
 ---
 
 ## Auth
