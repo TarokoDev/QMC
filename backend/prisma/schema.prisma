@@ -138,6 +138,8 @@ model Quote {
   refNumber    String         @default("") @map("ref_number")
   date         String         @default("")
   designer     String         @default("")
+  designerContact String      @default("") @map("designer_contact")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
   sections     QuoteSection[]
 
   @@map("quotes")

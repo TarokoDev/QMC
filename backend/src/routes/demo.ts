@@ -75,7 +75,8 @@ demoRouter.post(
         quotationRef: r.revision.label,
         refNumber: r.revision.refNumber,
         date: r.revision.date,
-        designer: 'Kim Lim',
+        designer: '',
+        designerContact: '',
       })),
       {
         id: randomUUID(),
@@ -89,6 +90,7 @@ demoRouter.post(
         refNumber: '',
         date: '',
         designer: '',
+        designerContact: '',
       },
     ]
 

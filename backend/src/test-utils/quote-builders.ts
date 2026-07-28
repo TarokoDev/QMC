@@ -55,6 +55,7 @@ export function makeQuoteDTO(overrides: Partial<QuoteDTO> = {}): QuoteDTO {
       refNumber: 'Q-001',
       date: '2026-01-01',
       designer: 'Kim Hoe',
+      designerContact: '91234567',
     },
     sections: [makeSectionDTO()],
     ...overrides,

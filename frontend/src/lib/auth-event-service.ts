@@ -102,6 +102,7 @@ export interface AdminRevisionSummary {
   clientId: string
   label: string
   position: number
+  updatedAt: string | null
 }
 
 export interface AdminRevision extends AdminRevisionSummary {

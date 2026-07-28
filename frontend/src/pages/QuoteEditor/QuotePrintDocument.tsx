@@ -101,16 +101,18 @@ export function QuotePrintDocument({
           <tr>
             <td className={`${cell} w-1/2`}>
               <p className="font-bold">Client</p>
-              <p>Name: {quote.info.clientName}</p>
-              <p>Email: {quote.info.email}</p>
-              <p>Contact: {quote.info.contact}</p>
+              {quote.info.clientName && <p>Name: {quote.info.clientName}</p>}
+              {quote.info.email && <p>Email: {quote.info.email}</p>}
+              {quote.info.contact && <p>Contact: {quote.info.contact}</p>}
             </td>
             <td className={`${cell} w-1/2`}>
               <p className="font-bold">Project</p>
+              {quote.info.projectSite && <p>Project Site: {quote.info.projectSite}</p>}
               <p>Quotation: {revisionLabel}</p>
               <p>REF: {quote.info.refNumber}</p>
               <p>Date: {quote.info.date}</p>
-              <p>Designer: {quote.info.designer}</p>
+              <p>Designer: {quote.info.designer || user.name}</p>
+              <p>Contact: {quote.info.designerContact || user.phoneNumber}</p>
             </td>
           </tr>
         </tbody>
@@ -251,7 +253,7 @@ export function QuotePrintDocument({
             <td className={`${cell} w-1/2`}>
               <p>Yours Sincerely,</p>
               <div className="h-14" />
-              <p>{user.name}</p>
+              <p>{quote.info.designer || user.name}</p>
               <p>Senior Designer</p>
               <p>{company.name}</p>
             </td>

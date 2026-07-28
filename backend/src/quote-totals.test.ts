@@ -30,6 +30,7 @@ function quote(sections: QuoteSectionDTO[]): QuoteDTO {
       refNumber: '',
       date: '',
       designer: '',
+      designerContact: '',
     },
     sections,
   }

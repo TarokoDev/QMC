@@ -109,7 +109,7 @@ export function UserDataBrowser({ userId }: { userId: string }) {
             { label: selection.category?.name ?? '' },
             { label: selection.client.name },
           ]}
-          revisions={revisions.map((item) => ({ id: item.id, label: item.label }))}
+          revisions={revisions.map((item) => ({ id: item.id, label: item.label, updatedAt: item.updatedAt }))}
           activeRevisionId={revision.id}
           onSelectRevision={(id) => void selectRevision(id)}
           // Required by the layout but unreachable: `readOnly` hides every

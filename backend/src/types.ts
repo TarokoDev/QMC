@@ -39,6 +39,7 @@ export interface QuoteDTO {
     refNumber: string
     date: string
     designer: string
+    designerContact: string
   }
   sections: QuoteSectionDTO[]
 }
@@ -75,6 +76,7 @@ export interface RevisionSummaryDTO {
   clientId: string
   label: string
   position: number
+  updatedAt: string | null
 }
 
 export interface RevisionDTO extends RevisionSummaryDTO {

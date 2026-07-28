@@ -1,15 +1,15 @@
 import { CalendarIcon } from 'lucide-react'
+import { useEffect } from 'react'
 import { CompanyLogoField } from '@/components/CompanyLogoField'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { useCurrentUser } from '@/lib/auth-context'
 import { formatDateDisplay } from '@/lib/date'
 import type { Quote } from '@/lib/mock-data'
 import { useSettings } from '@/lib/settings-context'
-
-const DESIGNER = 'Kim Lim'
 
 interface Props {
   quote: Quote
@@ -30,6 +30,7 @@ export function BasicInformationTab({
   canEditLogo,
 }: Props) {
   const { company } = useSettings()
+  const currentUser = useCurrentUser()
 
   function updateInfo<K extends keyof Quote['info']>(key: K, value: Quote['info'][K]) {
     onChange({ ...quote, info: { ...quote.info, [key]: value } })
@@ -39,6 +40,16 @@ export function BasicInformationTab({
     updateInfo(field, value)
     onClientFieldChange?.(field, value)
   }
+
+  useEffect(() => {
+    if (readOnly) return
+    if (!quote.info.designer && currentUser.name) updateInfo('designer', currentUser.name)
+  }, [quote.info.designer, currentUser.name, readOnly])
+
+  useEffect(() => {
+    if (readOnly) return
+    if (!quote.info.designerContact && currentUser.phoneNumber) updateInfo('designerContact', currentUser.phoneNumber)
+  }, [quote.info.designerContact, currentUser.phoneNumber, readOnly])
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto">
@@ -58,6 +69,7 @@ export function BasicInformationTab({
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold">Client</h3>
+        <p className="text-xs text-muted-foreground">These details will be displayed as-is on the quote.</p>
         <div className="grid max-w-xl grid-cols-1 gap-4">
           <Field
             label="Name"
@@ -84,6 +96,7 @@ export function BasicInformationTab({
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold">Project</h3>
+        <p className="text-xs text-muted-foreground">These details will be displayed as-is on the quote.</p>
         <div className="grid max-w-xl grid-cols-1 gap-4">
           <Field
             label="Project Site"
@@ -99,7 +112,18 @@ export function BasicInformationTab({
             disabled={readOnly}
           />
           <DateField value={quote.info.date} onChange={(v) => updateInfo('date', v)} disabled={readOnly} />
-          <Field label="Designer" value={DESIGNER} onChange={() => {}} disabled />
+          <Field
+            label="Designer"
+            value={quote.info.designer}
+            onChange={(v) => updateInfo('designer', v)}
+            disabled={readOnly}
+          />
+          <Field
+            label="Contact"
+            value={quote.info.designerContact}
+            onChange={(v) => updateInfo('designerContact', v)}
+            disabled={readOnly}
+          />
         </div>
       </section>
     </div>

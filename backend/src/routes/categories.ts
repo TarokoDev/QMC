@@ -115,6 +115,7 @@ categoriesRouter.post(
             refNumber: source.quote?.refNumber ?? '',
             date: source.quote?.date ?? '',
             designer: source.quote?.designer ?? '',
+            designerContact: source.quote?.designerContact ?? '',
             sections: { create: buildSectionsCreateInput(source.quote ? toCategoryDTO(source).quote.sections : []) },
           },
         },

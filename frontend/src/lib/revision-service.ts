@@ -6,6 +6,7 @@ export interface RevisionSummary {
   clientId: string
   label: string
   position: number
+  updatedAt: string | null
 }
 
 export interface Revision extends RevisionSummary {

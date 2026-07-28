@@ -57,6 +57,7 @@ export function makeQuote(overrides: Partial<Quote> = {}): Quote {
       refNumber: 'Q-001',
       date: '2026-01-01',
       designer: 'Kim Hoe',
+      designerContact: '91234567',
     },
     sections: [makeSection()],
     ...overrides,

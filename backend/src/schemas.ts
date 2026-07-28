@@ -110,6 +110,7 @@ export const quoteSchema = z.object({
     refNumber: z.string(),
     date: z.string(),
     designer: z.string(),
+    designerContact: z.string(),
   }),
   sections: z.array(quoteSectionSchema),
 })

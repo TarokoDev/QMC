@@ -276,6 +276,7 @@ adminRouter.get(
     const revisions = await prisma.revision.findMany({
       where: { clientId: req.params.clientId, ...revisionOwnedBy(req.params.userId) },
       orderBy: { position: 'asc' },
+      include: { quote: { select: { updatedAt: true } } },
     })
     res.json(revisions.map(toRevisionSummaryDTO))
   }),
