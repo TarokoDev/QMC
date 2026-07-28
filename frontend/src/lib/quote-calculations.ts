@@ -42,7 +42,12 @@ export interface QuoteSummary {
 export function getQuoteSummary(quote: Quote, gstRate: number): QuoteSummary {
   const sections = quote.sections
     .filter((section) => section.complete)
-    .map((section) => ({ section, areas: includedAreas(section) }))
+    .map((section) => ({
+      section,
+      areas: includedAreas(section)
+        .map((area) => ({ ...area, items: area.items.filter((item) => item.inc) }))
+        .filter((area) => area.items.length > 0),
+    }))
     .filter((entry) => entry.areas.length > 0)
 
   const subTotal = sections.reduce(

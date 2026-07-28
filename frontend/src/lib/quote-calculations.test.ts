@@ -162,13 +162,58 @@ describe('getQuoteSummary', () => {
         makeSection({ id: 's2', complete: false, areas: [makeArea({ items: [makeItem({ selling: 100 })] })] }),
         // area not included → dropped
         makeSection({ id: 's3', areas: [makeArea({ included: false, items: [makeItem({ selling: 100 })] })] }),
-        // item not checked → contributes 0 (but section/area still appear)
+        // item not checked → dropped, taking its now-empty area and section with it
         makeSection({ id: 's4', areas: [makeArea({ items: [makeItem({ inc: false, selling: 100 })] })] }),
       ],
     })
     const summary = getQuoteSummary(quote, GST_RATE)
-    expect(summary.sections.map((entry) => entry.section.id)).toEqual(['s1', 's4'])
+    expect(summary.sections.map((entry) => entry.section.id)).toEqual(['s1'])
     expect(summary.subTotal).toBe(100)
+  })
+
+  it('strips unchecked items (inc = false) so they never reach the quotation output', () => {
+    const quote = makeQuote({
+      sections: [
+        makeSection({
+          areas: [
+            makeArea({
+              id: 'a1',
+              items: [
+                makeItem({ id: 'i1', inc: true, selling: 100 }),
+                makeItem({ id: 'i2', inc: false, selling: 999 }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+    const summary = getQuoteSummary(quote, GST_RATE)
+    expect(summary.sections[0].areas[0].items.map((item) => item.id)).toEqual(['i1'])
+    expect(summary.subTotal).toBe(100)
+  })
+
+  it('keeps FOC items on the quotation — free of charge is still shown, at zero price', () => {
+    const quote = makeQuote({
+      sections: [
+        makeSection({
+          areas: [makeArea({ items: [makeItem({ id: 'i1', foc: true, selling: 100 })] })],
+        }),
+      ],
+    })
+    const summary = getQuoteSummary(quote, GST_RATE)
+    expect(summary.sections[0].areas[0].items.map((item) => item.id)).toEqual(['i1'])
+    expect(summary.subTotal).toBe(0)
+  })
+
+  it('drops an area (and empty section) once every item in it is unchecked', () => {
+    const quote = makeQuote({
+      sections: [
+        makeSection({
+          areas: [makeArea({ items: [makeItem({ inc: false }), makeItem({ inc: false })] })],
+        }),
+      ],
+    })
+    expect(getQuoteSummary(quote, GST_RATE).sections).toEqual([])
   })
 
   it('returns zeros and no sections for an empty quote', () => {

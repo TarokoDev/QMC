@@ -95,6 +95,27 @@ describe('buildExcelRows', () => {
     expect(itemRow?.[5]).toBe(300)
   })
 
+  it('omits unchecked items (inc = false) from the exported rows and renumbers around them', () => {
+    const quote = makeQuote({
+      sections: [
+        makeSection({
+          areas: [
+            makeArea({
+              items: [
+                makeItem({ id: 'i1', inc: false, description: 'Skipped' }),
+                makeItem({ id: 'i2', description: 'Kept', qty: 1, selling: 100 }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+    const rows = buildExcelRows(makeParams({ quote }))
+    expect(rows.find((row) => row[1] === 'Skipped')).toBeUndefined()
+    // The kept item takes the first slot — numbering derives from position after filtering.
+    expect(rows.find((row) => row[0] === 'A.1.1')?.[1]).toBe('Kept')
+  })
+
   it('shows a placeholder row when nothing is included in the summary', () => {
     const quote = makeQuote({ sections: [makeSection({ complete: false })] })
     const rows = buildExcelRows(makeParams({ quote }))
