@@ -47,7 +47,7 @@ A **line item** is where the money lives:
 | `qty` × `selling` | what the client pays for this row |
 | `cost` | what the business pays — internal only, never printed |
 | `foc` | free of charge: zeroes the price, **keeps** the cost (tracked as a loss) |
-| `inc` | included: unticking zeroes both price and cost |
+| `inc` | included: unticking zeroes both price and cost, and removes the row from Summary, print, and Excel output |
 
 **Revisions are immutable history.** `R0`, `R1`, `R2` are real persisted rows, not undo states. Only the latest is editable; older ones are the record of what was quoted before.
 
@@ -342,7 +342,9 @@ Section.complete ✓  →  Area.included ✓  →  Item.inc ✓  →  counts
 
 Plus the FOC asymmetry: `foc` zeroes the **price** but keeps the **cost**, because a freebie is a real expense the business should see as a loss. `inc: false` zeroes both.
 
-This rule lives in `quote-calculations.ts` and is enforced by 27 tests — it is the most heavily tested logic in the codebase, because it decides every number a client sees.
+The gate controls **visibility, not just arithmetic**: `getQuoteSummary` strips `inc: false` items from the tree it returns, and drops any area or section left empty by that stripping — so an unticked row never appears on the Summary tab, the printed PDF, or the Excel export. FOC items are the deliberate exception: they stay visible with `FOC` in the Amount column, because the client is meant to see the freebie.
+
+This rule lives in `quote-calculations.ts` and is enforced by 30 tests — it is the most heavily tested logic in the codebase, because it decides every number a client sees.
 
 ---
 

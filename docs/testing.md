@@ -2,7 +2,7 @@
 
 Complete reference for the QMC test suite — every test, what it protects, how it looks when it passes or fails, and how critical each one is.
 
-**Current state: 138 tests across 14 files.** Frontend 62, backend 76. Every test is a pure function test: no database, no network, no environment variables, no browser. The whole suite runs in well under a second.
+**Current state: 157 tests across 16 files.** Frontend 73, backend 84. Every test is a pure function test: no database, no network, no environment variables, no browser. The whole suite runs in well under a second.
 
 ---
 
@@ -14,8 +14,8 @@ Complete reference for the QMC test suite — every test, what it protects, how 
 - [Reading test output](#reading-test-output)
 - [Criticality ratings](#criticality-ratings)
 - [The full test catalogue](#the-full-test-catalogue)
-  - [Frontend: quote-calculations.test.ts (27)](#frontend-quote-calculationstestts--27-tests)
-  - [Frontend: quote-excel-export.test.ts (9)](#frontend-quote-excel-exporttestts--9-tests)
+  - [Frontend: quote-calculations.test.ts (30)](#frontend-quote-calculationstestts--30-tests)
+  - [Frontend: quote-excel-export.test.ts (10)](#frontend-quote-excel-exporttestts--10-tests)
   - [Frontend: api-client.test.ts (3)](#frontend-api-clienttestts--3-tests)
   - [Frontend: utils.test.ts (8)](#frontend-utilstestts--8-tests)
   - [Backend: quote-mapper.test.ts (6)](#backend-quote-mappertestts--6-tests)
@@ -119,8 +119,8 @@ flowchart TD
     E --> A --> Z --> CL --> DB
     DB --> M --> E
 
-    C -.guarded by.-> T1["quote-calculations.test.ts<br/>27 tests"]
-    X -.guarded by.-> T2["quote-excel-export.test.ts<br/>9 tests"]
+    C -.guarded by.-> T1["quote-calculations.test.ts<br/>30 tests"]
+    X -.guarded by.-> T2["quote-excel-export.test.ts<br/>10 tests"]
     A -.guarded by.-> T3["api-client.test.ts<br/>3 tests"]
     Z -.guarded by.-> T4["schemas.test.ts<br/>10 tests"]
     CL -.guarded by.-> T5["clone-quote.test.ts<br/>3 tests"]
@@ -146,11 +146,11 @@ Two failure modes drive almost every test in this suite:
 
  ✓ src/lib/api-client.test.ts (3 tests) 14ms
  ✓ src/lib/utils.test.ts (8 tests) 6ms
- ✓ src/lib/quote-calculations.test.ts (27 tests) 18ms
- ✓ src/lib/quote-excel-export.test.ts (9 tests) 4ms
+ ✓ src/lib/quote-calculations.test.ts (30 tests) 18ms
+ ✓ src/lib/quote-excel-export.test.ts (10 tests) 4ms
 
  Test Files  4 passed (4)
-      Tests  47 passed (47)
+      Tests  51 passed (51)
    Duration  383ms
 ```
 
@@ -230,7 +230,7 @@ Distribution across the 66 tests: **28 High · 24 Medium · 14 Low**.
 
 ## The full test catalogue
 
-### Frontend: `quote-calculations.test.ts` — 27 tests
+### Frontend: `quote-calculations.test.ts` — 30 tests
 
 📁 [`frontend/src/lib/quote-calculations.test.ts`](../frontend/src/lib/quote-calculations.test.ts) — tests [`quote-calculations.ts`](../frontend/src/lib/quote-calculations.ts)
 
@@ -302,9 +302,9 @@ expect(sectionTotals(section)).toEqual({ price: 0, cost: 100, profit: -100 })
 
 > **Test 13 vs 14 is the subtle pair.** FOC keeps cost; `inc:false` drops cost. Both zero the price. If someone "simplifies" these into one branch, 13 or 14 fails — which is exactly what should happen.
 
-#### `getQuoteSummary` — 7 tests
+#### `getQuoteSummary` — 10 tests
 
-The quote-wide rollup feeding Summary, Preview, PDF, and Excel.
+The quote-wide rollup feeding Summary, Preview, PDF, and Excel. This is where the three-tier gate filters **rows**, not just totals: unchecked items are stripped from `areas[].items`, and any area or section left empty by that stripping drops out entirely. (Before v1.5.2 the item gate only zeroed the total — unchecked rows still rendered on all three outputs.)
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
@@ -312,32 +312,35 @@ The quote-wide rollup feeding Summary, Preview, PDF, and Excel.
 | 17 | excludes complete sections whose areas are all un-included | Empty section drops out | → `sections: []` | 🔴 High |
 | 18 | includes a complete section with ≥1 included area, stripping the rest | Partial inclusion | `[a1 ✓, a2 ✗]` → summary holds only `a1` | 🔴 High |
 | 19 | computes subTotal, GST, grand total | GST at 9% | `500` → GST `45`, grand `545` | 🔴 High |
-| 20 | all three gates together | Integration of 16–18 | 4 sections → only `s1`+`s4` survive, `subTotal 100` | 🔴 High |
-| 21 | returns zeros for an empty quote | Degenerate input | → `{sections:[], subTotal:0, gst:0, grandTotal:0}` | 🟠 Medium |
-| 22 | survives floating-point math | IEEE-754 reality | `qty 0.1 × selling 0.2` → `0.02`, grand `0.0218` | 🟠 Medium |
+| 20 | all three gates together | Integration of 16–18 | 4 sections → only `s1` survives, `subTotal 100` | 🔴 High |
+| 21 | strips unchecked items so they never reach the output | Item gate filters rows | `[i1 ✓, i2 ✗]` → summary holds only `i1` | 🔴 High |
+| 22 | keeps FOC items on the quotation | FOC is shown, at zero price | `foc: true` item stays, `subTotal 0` | 🔴 High |
+| 23 | drops an area (and empty section) once every item is unchecked | Emptied containers vanish | all `inc:false` → `sections: []` | 🔴 High |
+| 24 | returns zeros for an empty quote | Degenerate input | → `{sections:[], subTotal:0, gst:0, grandTotal:0}` | 🟠 Medium |
+| 25 | survives floating-point math | IEEE-754 reality | `qty 0.1 × selling 0.2` → `0.02`, grand `0.0218` | 🟠 Medium |
 
 ```ts
 // Test 20 — the whole gating system in one assertion.
 // s1 counted · s2 section incomplete · s3 area excluded · s4 item unchecked
-expect(summary.sections.map((e) => e.section.id)).toEqual(['s1', 's4'])
+expect(summary.sections.map((e) => e.section.id)).toEqual(['s1'])
 expect(summary.subTotal).toBe(100)
 ```
 
-Note `s4` **appears** in the summary (its section and area are ticked) but contributes `0`. Section headers still print even when every item inside is unchecked — deliberate, so the printed quote keeps its structure.
+> **Tests 21 vs 22 is the visibility pair.** `inc: false` removes the row from the quotation; `foc: true` keeps the row visible and prints `FOC` in the Amount column. Both contribute 0 to the price — the difference is whether the client sees the line at all.
 
 #### `formatMoney` — 5 tests
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 23 | thousands grouping, exactly 2 decimals | Display format | `1234.5` → `S$1,234.50` | 🟠 Medium |
-| 24 | pads whole numbers to 2 decimals | No bare `S$1000000` | → `S$1,000,000.00` | 🟡 Low |
-| 25 | symbol stays in front of negatives | Loss display | `-100` → `S$-100.00` | 🟡 Low |
-| 26 | uses the caller's currency symbol | No hardcoded `S$` | `formatMoney(50, '$')` → `$50.00` | 🟠 Medium |
-| 27 | rounds rather than truncates | Half-up at 2dp | `0.005` → `S$0.01`; `1.239` → `S$1.24` | 🟠 Medium |
+| 26 | thousands grouping, exactly 2 decimals | Display format | `1234.5` → `S$1,234.50` | 🟠 Medium |
+| 27 | pads whole numbers to 2 decimals | No bare `S$1000000` | → `S$1,000,000.00` | 🟡 Low |
+| 28 | symbol stays in front of negatives | Loss display | `-100` → `S$-100.00` | 🟡 Low |
+| 29 | uses the caller's currency symbol | No hardcoded `S$` | `formatMoney(50, '$')` → `$50.00` | 🟠 Medium |
+| 30 | rounds rather than truncates | Half-up at 2dp | `0.005` → `S$0.01`; `1.239` → `S$1.24` | 🟠 Medium |
 
 ---
 
-### Frontend: `quote-excel-export.test.ts` — 9 tests
+### Frontend: `quote-excel-export.test.ts` — 10 tests
 
 📁 [`frontend/src/lib/quote-excel-export.test.ts`](../frontend/src/lib/quote-excel-export.test.ts) — tests [`quote-excel-export.ts`](../frontend/src/lib/quote-excel-export.ts)
 
@@ -361,27 +364,28 @@ These tests pin the **column contract** shared by Summary, Print, and Excel:
        └──────────────────────────────────────┴───────────────────┴────────────────┘
 ```
 
-Currency lives in the **header**; cells hold bare numbers so Excel keeps them numeric and sortable. Total rows pad with four empty strings so the label lands in column 4 and the value in column 5 — that padding is exactly what tests 35–36 pin.
+Currency lives in the **header**; cells hold bare numbers so Excel keeps them numeric and sortable. Total rows pad with four empty strings so the label lands in column 4 and the value in column 5 — that padding is exactly what tests 39–40 pin.
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 28 | `toLetter` maps indices to spreadsheet letters | Section lettering, incl. rollover | `0→A`, `25→Z`, `26→AA`, `27→AB` | 🟠 Medium |
-| 29 | starts with company / client / REF header rows | Document identity | row0 `['Kimchinc Pte Ltd']`, row1 client+revision, row2 REF+date | 🟠 Medium |
-| 30 | numbers sections A/B, areas A.1, items A.1.1 from position | Derived numbering, never stored | `A.1`→`Kitchen`, `A.1.1`→`Cabinet`, `B.1`→`Bedroom` | 🔴 High |
-| 31 | header row uses the 6-column set with currency in header | The column contract | `['No.','Description','Qty','Unit','Unit Price (S$)','Amount (S$)']` | 🔴 High |
-| 32 | renders literal `FOC`, not `0`, in Amount | FOC visibility | Unit Price `50`, Amount `'FOC'` | 🔴 High |
-| 33 | renders normal amounts as numbers | Stay numeric, not strings | `qty 2 × 150` → Unit Price `150`, Amount `300` | 🔴 High |
-| 34 | placeholder row when nothing is included | Empty state | `['No items included yet.']` | 🟡 Low |
-| 35 | appends Sub Total / GST / Grand Total | Totals block + padding | `['','','','','Sub Total',1000]`, GST `90`, grand `1090` | 🔴 High |
-| 36 | payment terms = grandTotal × percent, numeric, 2dp | Deposit schedule | `1090` split 50/50 → `[1,'Deposit',545]`, `[2,'Completion',545]` | 🔴 High |
+| 31 | `toLetter` maps indices to spreadsheet letters | Section lettering, incl. rollover | `0→A`, `25→Z`, `26→AA`, `27→AB` | 🟠 Medium |
+| 32 | starts with company / client / REF header rows | Document identity | row0 `['Kimchinc Pte Ltd']`, row1 client+revision, row2 REF+date | 🟠 Medium |
+| 33 | numbers sections A/B, areas A.1, items A.1.1 from position | Derived numbering, never stored | `A.1`→`Kitchen`, `A.1.1`→`Cabinet`, `B.1`→`Bedroom` | 🔴 High |
+| 34 | header row uses the 6-column set with currency in header | The column contract | `['No.','Description','Qty','Unit','Unit Price (S$)','Amount (S$)']` | 🔴 High |
+| 35 | renders literal `FOC`, not `0`, in Amount | FOC visibility | Unit Price `50`, Amount `'FOC'` | 🔴 High |
+| 36 | renders normal amounts as numbers | Stay numeric, not strings | `qty 2 × 150` → Unit Price `150`, Amount `300` | 🔴 High |
+| 41 | omits unchecked items and renumbers around them | Item gate reaches the export | `inc:false` row absent; kept item becomes `A.1.1` | 🔴 High |
+| 42 | placeholder row when nothing is included | Empty state | `['No items included yet.']` | 🟡 Low |
+| 43 | appends Sub Total / GST / Grand Total | Totals block + padding | `['','','','','Sub Total',1000]`, GST `90`, grand `1090` | 🔴 High |
+| 44 | payment terms = grandTotal × percent, numeric, 2dp | Deposit schedule | `1090` split 50/50 → `[1,'Deposit',545]`, `[2,'Completion',545]` | 🔴 High |
 
 ```ts
-// Test 32 — FOC shows its unit price but "FOC" as the amount.
+// Test 35 — FOC shows its unit price but "FOC" as the amount.
 expect(itemRow?.[4]).toBe(50)      // Unit Price — still a number
 expect(itemRow?.[5]).toBe('FOC')   // Amount — literal text
 ```
 
-> ⚠️ **Change one output, change all three.** Summary, `QuotePrintDocument`, and Excel share this column contract. Tests 31/35 pin the count and offsets on the Excel side only — the other two have no tests yet (see [gaps](#coverage-map-and-gaps)), so if you edit columns, check them by eye.
+> ⚠️ **Change one output, change all three.** Summary, `QuotePrintDocument`, and Excel share this column contract. Tests 34/39 pin the count and offsets on the Excel side only — the other two have no tests yet (see [gaps](#coverage-map-and-gaps)), so if you edit columns, check them by eye.
 
 ---
 
@@ -418,12 +422,12 @@ sequenceDiagram
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 37 | waits for an access token that resolves asynchronously | The race fix | token resolving after 10ms still lands as `Bearer late-token` | 🔴 High |
-| 38 | omits Authorization when there is genuinely no session | Don't send `Bearer null` | `getAccessToken → null` → no header | 🟠 Medium |
-| 39 | throws `ApiError` carrying `.status` on non-2xx | Callers branch on `.status` (e.g. 404 → undefined) | 401 → `ApiError{status:401, message:'Unauthorized'}` | 🟠 Medium |
+| 41 | waits for an access token that resolves asynchronously | The race fix | token resolving after 10ms still lands as `Bearer late-token` | 🔴 High |
+| 42 | omits Authorization when there is genuinely no session | Don't send `Bearer null` | `getAccessToken → null` → no header | 🟠 Medium |
+| 43 | throws `ApiError` carrying `.status` on non-2xx | Callers branch on `.status` (e.g. 404 → undefined) | 401 → `ApiError{status:401, message:'Unauthorized'}` | 🟠 Medium |
 
 ```ts
-// Test 37 — a token that resolves on a later tick must still reach the request.
+// Test 41 — a token that resolves on a later tick must still reach the request.
 getAccessToken.mockImplementation(
   () => new Promise<string>((resolve) => setTimeout(() => resolve('late-token'), 10)),
 )
@@ -441,16 +445,16 @@ expect(lastRequestHeaders(fetchMock).Authorization).toBe('Bearer late-token')
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 40 | title-cases each space-separated word | Client name display | `'kim hoe'` → `'Kim Hoe'` | 🟡 Low |
-| 41 | leaves already-capitalized words unchanged | Idempotent | `'Kim Hoe'` → `'Kim Hoe'` | 🟡 Low |
-| 42 | only uppercases the first letter, preserving the rest | No lowercasing the tail | `'mcDonald'` → `'McDonald'` | 🟡 Low |
-| 43 | returns an empty string unchanged | Degenerate input | `''` → `''` | 🟡 Low |
-| 44 | preserves consecutive spaces | No accidental collapsing | `'kim  hoe'` → `'Kim  Hoe'` | 🟡 Low |
-| 45 | `cn` joins class names | Base case | `cn('a','b')` → `'a b'` | 🟡 Low |
-| 46 | `cn` drops falsy conditionals | `cond && 'cls'` idiom | `cn('a', false && 'b', undefined, 'c')` → `'a c'` | 🟠 Medium |
-| 47 | `cn` resolves Tailwind conflicts, later wins | tailwind-merge behaviour | `cn('p-2','p-4')` → `'p-4'` | 🟠 Medium |
+| 44 | title-cases each space-separated word | Client name display | `'kim hoe'` → `'Kim Hoe'` | 🟡 Low |
+| 45 | leaves already-capitalized words unchanged | Idempotent | `'Kim Hoe'` → `'Kim Hoe'` | 🟡 Low |
+| 46 | only uppercases the first letter, preserving the rest | No lowercasing the tail | `'mcDonald'` → `'McDonald'` | 🟡 Low |
+| 47 | returns an empty string unchanged | Degenerate input | `''` → `''` | 🟡 Low |
+| 48 | preserves consecutive spaces | No accidental collapsing | `'kim  hoe'` → `'Kim  Hoe'` | 🟡 Low |
+| 49 | `cn` joins class names | Base case | `cn('a','b')` → `'a b'` | 🟡 Low |
+| 50 | `cn` drops falsy conditionals | `cond && 'cls'` idiom | `cn('a', false && 'b', undefined, 'c')` → `'a c'` | 🟠 Medium |
+| 51 | `cn` resolves Tailwind conflicts, later wins | tailwind-merge behaviour | `cn('p-2','p-4')` → `'p-4'` | 🟠 Medium |
 
-Mostly Low: these are cosmetic helpers, and a failure is visible the moment anyone looks at the screen. Tests 46–47 are Medium because `cn` is used in virtually every component — if tailwind-merge silently changed precedence, styling would break app-wide in ways that are hard to trace back.
+Mostly Low: these are cosmetic helpers, and a failure is visible the moment anyone looks at the screen. Tests 50–51 are Medium because `cn` is used in virtually every component — if tailwind-merge silently changed precedence, styling would break app-wide in ways that are hard to trace back.
 
 ---
 
@@ -462,18 +466,18 @@ Converts Prisma rows into the `QuoteDTO` the frontend consumes. **Contains the s
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 48 | maps a persisted row back to the DTO shape | Base case | `toQuoteDTO(row)` deep-equals the DTO | 🔴 High |
-| 49 | orders by `position` column, not row order | DB row order is not guaranteed | rows reversed → still `['s1','s2','s3']`, `['a1','a2']`, `['i1','i2','i3']` | 🔴 High |
-| 50 | coerces Decimal-like values to plain numbers | Prisma returns `Decimal`, not `number` | `{toString:()=>'2.5'}` → `2.5` | 🔴 High |
-| 51 | `BLANK_QUOTE` when a **category** has no quote row | Null-safety | `quote: null` → `BLANK_QUOTE` | 🟠 Medium |
+| 52 | maps a persisted row back to the DTO shape | Base case | `toQuoteDTO(row)` deep-equals the DTO | 🔴 High |
+| 53 | orders by `position` column, not row order | DB row order is not guaranteed | rows reversed → still `['s1','s2','s3']`, `['a1','a2']`, `['i1','i2','i3']` | 🔴 High |
+| 54 | coerces Decimal-like values to plain numbers | Prisma returns `Decimal`, not `number` | `{toString:()=>'2.5'}` → `2.5` | 🔴 High |
+| 55 | `BLANK_QUOTE` when a **category** has no quote row | Null-safety | `quote: null` → `BLANK_QUOTE` | 🟠 Medium |
 | 51b | `BLANK_QUOTE` when a **revision** has no quote row | Null-safety | `quote: null` → `BLANK_QUOTE` | 🟠 Medium |
-| 52 | **round-trip invariant: save → read never mutates content** | The core guarantee | DTO → create input → rows → DTO is lossless (ids aside) | 🔴 High |
+| 56 | **round-trip invariant: save → read never mutates content** | The core guarantee | DTO → create input → rows → DTO is lossless (ids aside) | 🔴 High |
 
-**Why #49 is High:** without an `ORDER BY position`, Postgres may return rows in any order. Sections would silently reshuffle — a client's quote reordering itself between saves, with no error anywhere.
+**Why #53 is High:** without an `ORDER BY position`, Postgres may return rows in any order. Sections would silently reshuffle — a client's quote reordering itself between saves, with no error anywhere.
 
-**Why #50 is High:** Prisma hands back `Decimal` objects for numeric columns. Skip the coercion and `qty` becomes an object; `2.5 * 100` yields `NaN`, and `NaN` propagates through every total to the PDF.
+**Why #54 is High:** Prisma hands back `Decimal` objects for numeric columns. Skip the coercion and `qty` becomes an object; `2.5 * 100` yields `NaN`, and `NaN` propagates through every total to the PDF.
 
-**Test 52, the round-trip invariant**, deserves its own diagram — it is the one test that guards *every* clone and autosave path at once:
+**Test 56, the round-trip invariant**, deserves its own diagram — it is the one test that guards *every* clone and autosave path at once:
 
 ```mermaid
 flowchart LR
@@ -503,13 +507,13 @@ If this round trip is lossless, then category duplication, client creation from 
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 53 | empty create input for no sections | Degenerate input | `[]` → `[]` | 🟡 Low |
-| 54 | injects `position` from array index at all three levels | Ordering is written on save | sections `[0,1]`, areas `[0,1]`, items `[0,1]` | 🔴 High |
-| 55 | copies fields exactly but **never** the DTO ids | Clones get fresh ids | full nested object compared field-by-field | 🔴 High |
+| 57 | empty create input for no sections | Degenerate input | `[]` → `[]` | 🟡 Low |
+| 58 | injects `position` from array index at all three levels | Ordering is written on save | sections `[0,1]`, areas `[0,1]`, items `[0,1]` | 🔴 High |
+| 59 | copies fields exactly but **never** the DTO ids | Clones get fresh ids | full nested object compared field-by-field | 🔴 High |
 
-**Why #55 is High:** leaking a source id into a clone's create input would make Prisma either collide on a primary key or, worse, silently attach the new quote's rows to the *original* quote. Editing the copy would then mutate the original. The assertion is a full `toEqual` on the nested structure precisely so an accidentally-added `id` field fails loudly.
+**Why #59 is High:** leaking a source id into a clone's create input would make Prisma either collide on a primary key or, worse, silently attach the new quote's rows to the *original* quote. Editing the copy would then mutate the original. The assertion is a full `toEqual` on the nested structure precisely so an accidentally-added `id` field fails loudly.
 
-Test 54 is the write-side counterpart to mapper test 49 (the read side). Together they close the ordering loop: 54 proves position is written correctly, 49 proves it is read back correctly.
+Test 58 is the write-side counterpart to mapper test 53 (the read side). Together they close the ordering loop: 58 proves position is written correctly, 53 proves it is read back correctly.
 
 ---
 
@@ -521,16 +525,16 @@ The zod validation layer — the boundary where untrusted request bodies become 
 
 | # | Test | Rule | Example | Rating |
 | --- | --- | --- | --- | --- |
-| 56 | accepts a fully valid quote DTO | Happy path — guards over-tightening | `safeParse(makeQuoteDTO()).success` → `true` | 🟠 Medium |
-| 57 | rejects an unknown unit | Unit is a closed enum | `unit: 'Metre'` → rejected | 🟠 Medium |
-| 58 | rejects a string qty | No `"2"` sneaking in | `qty: '2'` → rejected | 🔴 High |
-| 59 | rejects a missing `foc`/`inc` flag | Flags are required, not optional | item without `foc` → rejected | 🔴 High |
-| 60 | 🟡 **KNOWN GAP:** accepts negative qty and cost | Pinned gap — no `.positive()` yet | `qty:-5, cost:-10` → currently `true` | 🟡 Low |
-| 61 | 🟡 **KNOWN GAP:** accepts `Infinity` selling | Pinned gap — no `.finite()` yet | `selling: Infinity` → currently `true` | 🟡 Low |
-| 62 | requires the quote wrapped in `{ quote }` | Body shape | `{quote: dto}` ✓, bare `dto` ✗ | 🟠 Medium |
-| 63 | defaults `source` to `'scratch'` when omitted | Blank-quote default | `{name:'X'}` → `source: 'scratch'` | 🟠 Medium |
-| 64 | accepts `'master'` as a source | Seed from master template | `source:'master'` → preserved | 🟠 Medium |
-| 65 | rejects an empty name | No unnamed clients | `{name:''}` → rejected | 🟠 Medium |
+| 60 | accepts a fully valid quote DTO | Happy path — guards over-tightening | `safeParse(makeQuoteDTO()).success` → `true` | 🟠 Medium |
+| 61 | rejects an unknown unit | Unit is a closed enum | `unit: 'Metre'` → rejected | 🟠 Medium |
+| 62 | rejects a string qty | No `"2"` sneaking in | `qty: '2'` → rejected | 🔴 High |
+| 63 | rejects a missing `foc`/`inc` flag | Flags are required, not optional | item without `foc` → rejected | 🔴 High |
+| 64 | 🟡 **KNOWN GAP:** accepts negative qty and cost | Pinned gap — no `.positive()` yet | `qty:-5, cost:-10` → currently `true` | 🟡 Low |
+| 65 | 🟡 **KNOWN GAP:** accepts `Infinity` selling | Pinned gap — no `.finite()` yet | `selling: Infinity` → currently `true` | 🟡 Low |
+| 66 | requires the quote wrapped in `{ quote }` | Body shape | `{quote: dto}` ✓, bare `dto` ✗ | 🟠 Medium |
+| 67 | defaults `source` to `'scratch'` when omitted | Blank-quote default | `{name:'X'}` → `source: 'scratch'` | 🟠 Medium |
+| 68 | accepts `'master'` as a source | Seed from master template | `source:'master'` → preserved | 🟠 Medium |
+| 69 | rejects an empty name | No unnamed clients | `{name:''}` → rejected | 🟠 Medium |
 
 **Why 58–59 are High:** a string `qty` reaching the database poisons every downstream calculation — `"2" * 150` is `300` in JavaScript, but `"2" + 150` is `"2150"`, and which one you get depends on the operator. A missing `foc` flag defaults to `undefined`, which is falsy, so a free item silently starts charging the client.
 
@@ -538,7 +542,7 @@ The zod validation layer — the boundary where untrusted request bodies become 
 
 These assert that invalid input is **currently accepted**. They are not endorsements — they are pins, so the gap is visible in the suite rather than lurking undocumented.
 
-If you tighten the schema with `.positive()` or `.finite()`, tests 60 and 61 will **fail**. That failure is good news:
+If you tighten the schema with `.positive()` or `.finite()`, tests 64 and 65 will **fail**. That failure is good news:
 
 ```
  FAIL  src/schemas.test.ts > quoteSchema > KNOWN GAP: currently accepts negative qty and cost
@@ -601,8 +605,8 @@ Route handlers and the cascade wiring have no automated coverage (see the gaps b
 flowchart TB
     subgraph Covered["✅ Covered by tests"]
         direction TB
-        C1["Money math — 27"]
-        C2["Excel layout — 9"]
+        C1["Money math — 30"]
+        C2["Excel layout — 10"]
         C3["Auth header — 3"]
         C4["DB → DTO mapping — 6"]
         C5["DTO → DB input — 3"]
@@ -631,7 +635,7 @@ flowchart TB
 
 - **No component tests.** `SummaryTab` and `QuotePrintDocument` share the column contract with Excel, but only the Excel side is pinned. A column change in the two React tables breaks nothing in CI.
 - **No route tests.** Per-user `ownerId` scoping — the only thing separating one user's folders from another's — has zero automated coverage. This is the largest gap by risk.
-- **No middleware test** for the 401-vs-503 branch added in `154b998`, though the frontend half of that fix is covered by tests 37–39.
+- **No middleware test** for the 401-vs-503 branch added in `154b998`, though the frontend half of that fix is covered by tests 41–43.
 - **No context/provider tests**, so the `error` + `reload()` retry path added alongside the auth fix is verified only by hand.
 
 Highest-value additions, in order: route tests for ownership scoping (needs a disposable Postgres, see below), then component tests for the shared column contract, then a `require-auth` unit test.
@@ -697,7 +701,7 @@ Results appear in the **Actions** tab and as checks on each PR. Note the orderin
 3. Build inputs with the fixture builders.
 4. Name the test after the business rule it enforces.
 5. Run `npm run test:watch` while writing.
-6. **Confirm the test can fail.** Break the source deliberately, watch it go red, then restore. A test that has never failed is unproven — this is how test 37 was validated against the real auth bug.
+6. **Confirm the test can fail.** Break the source deliberately, watch it go red, then restore. A test that has never failed is unproven — this is how test 41 was validated against the real auth bug.
 
 ### Future tiers (not built yet)
 
