@@ -106,6 +106,7 @@ export function QuoteEditorLayout({
   const activeRevisionIndex = revisions.findIndex((revision) => revision.id === activeRevisionId)
   const activeRevisionLabel = revisions[activeRevisionIndex]?.label ?? ''
   const isLatestRevision = activeRevisionIndex === revisions.length - 1
+  const latestRevision = revisions[revisions.length - 1]
   // Only the latest revision was ever editable; `readOnly` freezes the rest too.
   const fieldsReadOnly = readOnly || !isLatestRevision
 
@@ -186,11 +187,6 @@ export function QuoteEditorLayout({
                           </Badge>
                         )}
                       </button>
-                      {isLast && revision.updatedAt && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          Last updated {formatSGDateTime(revision.updatedAt)}
-                        </span>
-                      )}
                       {canDelete && (
                         <button
                           type="button"
@@ -216,6 +212,11 @@ export function QuoteEditorLayout({
                 >
                   <Plus className="size-4" />
                 </Button>
+              )}
+              {!hideRevisions && latestRevision?.updatedAt && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  Last updated {formatSGDateTime(latestRevision.updatedAt)}
+                </span>
               )}
             </div>
             <div className="flex items-center gap-1.5">
