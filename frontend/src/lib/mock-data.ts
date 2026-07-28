@@ -35,6 +35,7 @@ export interface QuoteInfo {
   refNumber: string
   date: string
   designer: string
+  designerContact: string
 }
 
 export interface CompanyInfo {

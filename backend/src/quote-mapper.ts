@@ -64,6 +64,7 @@ export function toQuoteDTO(quote: QuoteRow): QuoteDTO {
       refNumber: quote.refNumber,
       date: quote.date,
       designer: quote.designer,
+      designerContact: quote.designerContact,
     },
     sections: [...quote.sections].sort((a, b) => a.position - b.position).map(toSectionDTO),
   }
@@ -79,6 +80,7 @@ export const BLANK_QUOTE: QuoteDTO = {
     refNumber: '',
     date: '',
     designer: '',
+    designerContact: '',
   },
   sections: [],
 }
@@ -122,8 +124,15 @@ export function toRevisionSummaryDTO(revision: {
   clientId: string
   label: string
   position: number
+  quote: { updatedAt: Date } | null
 }): RevisionSummaryDTO {
-  return { id: revision.id, clientId: revision.clientId, label: revision.label, position: revision.position }
+  return {
+    id: revision.id,
+    clientId: revision.clientId,
+    label: revision.label,
+    position: revision.position,
+    updatedAt: revision.quote ? revision.quote.updatedAt.toISOString() : null,
+  }
 }
 
 export function toRevisionDTO(revision: RevisionRow): RevisionDTO {

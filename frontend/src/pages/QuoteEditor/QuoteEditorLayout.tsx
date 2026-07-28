@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useLocalStorageState } from '@/hooks/use-local-storage-state'
+import { formatSGDateTime } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import type { Quote } from '@/lib/mock-data'
 import { BasicInformationTab } from '@/pages/QuoteEditor/BasicInformationTab'
@@ -25,6 +26,7 @@ const TABS: { id: TabId; label: string }[] = [
 export interface RevisionChip {
   id: string
   label: string
+  updatedAt?: string | null
 }
 
 interface Props {
@@ -184,6 +186,11 @@ export function QuoteEditorLayout({
                           </Badge>
                         )}
                       </button>
+                      {isLast && revision.updatedAt && (
+                        <span className="text-xs text-muted-foreground">
+                          Updated {formatSGDateTime(revision.updatedAt)}
+                        </span>
+                      )}
                       {canDelete && (
                         <button
                           type="button"

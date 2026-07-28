@@ -72,7 +72,8 @@ clientsRouter.post(
                 quotationRef: 'R0',
                 refNumber: baseQuote.info.refNumber,
                 date: todaySGDateString(),
-                designer: 'Kim Lim',
+                designer: '',
+                designerContact: '',
                 sections: { create: buildSectionsCreateInput(baseQuote.sections) },
               },
             },
@@ -137,6 +138,7 @@ clientsRouter.get(
     const revisions = await prisma.revision.findMany({
       where: { clientId: req.params.id, ...revisionOwnedBy(req.authUserId) },
       orderBy: { position: 'asc' },
+      include: { quote: { select: { updatedAt: true } } },
     })
     res.json(revisions.map(toRevisionSummaryDTO))
   }),

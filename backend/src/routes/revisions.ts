@@ -56,6 +56,7 @@ revisionsRouter.post(
             refNumber: sourceQuote.info.refNumber,
             date: sourceQuote.info.date,
             designer: sourceQuote.info.designer,
+            designerContact: sourceQuote.info.designerContact,
             sections: { create: buildSectionsCreateInput(sourceQuote.sections) },
           },
         },
